@@ -1,4 +1,5 @@
 import random
+from typing import Optional
 
 from src import net, routing
 
@@ -18,7 +19,7 @@ class SimpleRouter(routing.Router, net.Adapter.Handler):
         adapter.register_handler(self)
 
     def has_route(self, target) -> bool:
-        return target in self.routes
+        return target in self.routes and len(self.routes[target]) != 0
 
     def tick(self):
         ports = self.adapter.ports()
@@ -27,10 +28,21 @@ class SimpleRouter(routing.Router, net.Adapter.Handler):
         prop_msg = RoutePropagationMessage(target_id, route)
         self.adapter.send(port_num, prop_msg)
 
-    def handle(self, message):
+    def handle(self, port_num: int, message):
         prop: RoutePropagationMessage = message
         node_routes = self._get_node_routes(prop.node_id)
-        node_routes.append(prop.route)
+        route = prop.route
+        route.append(port_num)
+        node_routes.append(route)
+
+    def shortest_route(self, target) -> Optional[list[int]]:
+        if target not in self.routes:
+            return None
+        target_routes = self.routes[target]
+        if len(target_routes) == 0:
+            return None
+        shortest_route = min(target_routes, key=lambda route: len(route))
+        return shortest_route
 
     def _get_node_routes(self, node_id):
         if node_id in self.routes:

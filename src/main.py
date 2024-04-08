@@ -13,7 +13,7 @@ def run():
     experiment = measure.Experiment(
         config={
             "measurement": {
-                "steps": 100,
+                "steps": 1000,
                 "samples": 10,
             },
             "network": {

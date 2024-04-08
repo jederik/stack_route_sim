@@ -55,6 +55,21 @@ class MetricsCalculator:
 
         return routable_pairs / reachable_pairs
 
+    def efficiency(self):
+        route_lengths = 0
+        node_distances = 0
+        distances = graphs.distances(self.graph)
+        for i in range(len(self.network.nodes)):
+            router = self.routers[i]
+            for j in range(len(self.network.nodes)):
+                if router.has_route(j):
+                    shortest_route = router.shortest_route(j)
+                    route_lengths += len(shortest_route)
+                    node_distances += distances[i][j]
+        if route_lengths == 0:
+            return 1
+        return node_distances / route_lengths
+
 
 class Experiment:
     def __init__(self, config, emit_sample):
@@ -87,5 +102,6 @@ class Experiment:
     def scrape(self):
         return {
             "transmissions_per_node": self.metrics_calculator.transmissions_per_node(),
-            "routability_rate": self.metrics_calculator.routability_rate()
+            "routability_rate": self.metrics_calculator.routability_rate(),
+            "efficiency": self.metrics_calculator.efficiency(),
         }

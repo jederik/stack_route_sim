@@ -1,10 +1,11 @@
+import copy
 from collections import defaultdict
 from typing import Optional
 
 
 class Adapter:
     class Handler:
-        def handle(self, message):
+        def handle(self, port_num: int, message):
             raise Exception("not implemented")
 
     def send(self, port_num: int, message):
@@ -18,7 +19,8 @@ class Adapter:
 
 
 class Transmission:
-    def __init__(self, recipient_node_id: int, message):
+    def __init__(self, recipient_node_id: int, port_num: int, message):
+        self.port_num = port_num
         self.message = message
         self.recipient_node_id = recipient_node_id
 
@@ -26,7 +28,8 @@ class Transmission:
 class Network:
     class Node:
         class Port:
-            def __init__(self, target_node: int):
+            def __init__(self, target_node: int, target_port_num: int):
+                self.target_port_num: int = target_port_num
                 self.target_node: int = target_node
 
         def __init__(self):
@@ -66,16 +69,18 @@ class Network:
         n2 = self.nodes[node2]
         pn1 = n1.next_port_num
         pn2 = n2.next_port_num
-        n1.ports[pn1] = Network.Node.Port(node2)
-        n2.ports[pn2] = Network.Node.Port(node1)
+        n1.ports[pn1] = Network.Node.Port(node2, pn2)
+        n2.ports[pn2] = Network.Node.Port(node1, pn1)
         n1.next_port_num += 1
         n2.next_port_num += 1
 
     def _send(self, sender_node_id: int, sender_port_num: int, message):
         node = self.nodes[sender_node_id]
+        port = node.ports[sender_port_num]
         transmission = Transmission(
-            recipient_node_id=node.ports[sender_port_num].target_node,
-            message=message,
+            recipient_node_id=port.target_node,
+            port_num=port.target_port_num,
+            message=copy.deepcopy(message),
         )
         self._transmission_queue.append(transmission)
         self._process_queue()
@@ -88,7 +93,7 @@ class Network:
                 self._increase_counter({"name": "transmission_count", "success": "false"})
                 raise Exception("no handler registered")
             else:
-                adapter.handler.handle(transmission.message)
+                adapter.handler.handle(transmission.port_num, transmission.message)
                 self._increase_counter({"name": "transmission_count", "success": "true"})
 
     def _increase_counter(self, labels: dict[str, str]):
