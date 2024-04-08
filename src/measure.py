@@ -74,7 +74,7 @@ class MetricsCalculator:
 class Experiment:
     def __init__(self, config, emit_sample):
         self.network: net.Network = generate_network(config["network"])
-        self.strategy = strategy.SimpleRoutingStrategy()
+        self.strategy = strategy.SimpleRoutingStrategy(config["strategy"])
         self.routers: list[routing.Router] = [
             self.strategy.build_router(adapter, node_id)
             for node_id, adapter in enumerate(self.network.adapters)

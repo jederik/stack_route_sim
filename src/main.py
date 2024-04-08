@@ -19,7 +19,10 @@ def run():
             "network": {
                 "node_count": 100,
                 "density": .1,
-            }
+            },
+            "strategy": {
+                "propagate_shortest_route": True,
+            },
         },
         emit_sample=dump_sample
     )
