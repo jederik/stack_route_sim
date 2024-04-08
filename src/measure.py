@@ -1,6 +1,6 @@
 import random
 
-from src import routing, net, strategy
+from src import routing, net, strategy, graphs
 
 
 def generate_network(config):
@@ -19,16 +19,54 @@ def generate_network(config):
     return network
 
 
+def to_graph(network: net.Network) -> list[list[int]]:
+    return [
+        [
+            port.target_node
+            for port in node.ports.values()
+        ]
+        for node in network.nodes
+    ]
+
+
+class MetricsCalculator:
+    def __init__(self, network: net.Network, routers: list[routing.Router]):
+        self.network = network
+        self.routers = routers
+        self.graph = to_graph(self.network)
+
+    def transmissions_per_node(self):
+        return self.network.get_counter({"name": "transmission_count", "success": "true"}) / len(self.network.nodes)
+
+    def routability_rate(self):
+        routable_pairs = 0
+        for i in range(len(self.network.nodes)):
+            router = self.routers[i]
+            for j in range(len(self.network.nodes)):
+                if router.has_route(j):
+                    routable_pairs += 1
+
+        reachable_pairs = 0
+        reachabilities = graphs.reachabilities(self.graph)
+        for i in range(len(self.network.nodes)):
+            for j in range(len(self.network.nodes)):
+                if reachabilities[i][j]:
+                    reachable_pairs += 1
+
+        return routable_pairs / reachable_pairs
+
+
 class Experiment:
     def __init__(self, config, emit_sample):
         self.network: net.Network = generate_network(config["network"])
         self.strategy = strategy.SimpleRoutingStrategy()
         self.routers: list[routing.Router] = [
-            self.strategy.build_router(adapter)
-            for adapter in self.network.adapters
+            self.strategy.build_router(adapter, node_id)
+            for node_id, adapter in enumerate(self.network.adapters)
         ]
         self.config = config["measurement"]
         self.emit_sample = emit_sample
+        self.metrics_calculator = MetricsCalculator(self.network, self.routers)
 
     def run(self):
         steps = self.config["steps"]
@@ -48,5 +86,6 @@ class Experiment:
 
     def scrape(self):
         return {
-            "transmissions_per_node": self.network.get_counter({"name": "transmission_count", "success": "true"}) / len(self.network.nodes),
+            "transmissions_per_node": self.metrics_calculator.transmissions_per_node(),
+            "routability_rate": self.metrics_calculator.routability_rate()
         }
