@@ -16,15 +16,28 @@ def run():
                 "steps": 3000,
                 "samples": 100,
             },
-            "network": {
-                "node_count": 100,
-                "density": .1,
-            },
-            "strategy": {
-                "propagate_shortest_route": True,
-            },
+            "candidates": {
+                "random": {
+                    "network": {
+                        "node_count": 100,
+                        "density": .1,
+                    },
+                    "strategy": {
+                        "propagate_shortest_route": False,
+                    },
+                },
+                "shortest": {
+                    "network": {
+                        "node_count": 100,
+                        "density": .1,
+                    },
+                    "strategy": {
+                        "propagate_shortest_route": True,
+                    },
+                },
+            }
         },
-        emit_sample=dump_sample,
+        sample_emitter=dump_sample,
     )
     experiment.run()
 

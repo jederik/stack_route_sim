@@ -71,17 +71,36 @@ class MetricsCalculator:
         return node_distances / route_lengths
 
 
-class Experiment:
-    def __init__(self, config, emit_sample):
+class Candidate:
+    def __init__(self, config):
         self.network: net.Network = generate_network(config["network"])
         self.strategy = strategy.SimpleRoutingStrategy(config["strategy"])
         self.routers: list[routing.Router] = [
             self.strategy.build_router(adapter, node_id)
             for node_id, adapter in enumerate(self.network.adapters)
         ]
-        self.config = config["measurement"]
-        self.emit_sample = emit_sample
         self.metrics_calculator = MetricsCalculator(self.network, self.routers)
+
+    def run_step(self):
+        for router in self.routers:
+            router.tick()
+
+    def scrape(self):
+        return {
+            "transmissions_per_node": self.metrics_calculator.transmissions_per_node(),
+            "routability_rate": self.metrics_calculator.routability_rate(),
+            "efficiency": self.metrics_calculator.efficiency(),
+        }
+
+
+class Experiment:
+    def __init__(self, config, sample_emitter):
+        self.config = config["measurement"]
+        self.emit_sample = sample_emitter
+        self.candidates: dict[str, Candidate] = {
+            name: Candidate(candidate_config)
+            for name, candidate_config in config["candidates"].items()
+        }
 
     def run(self):
         steps = self.config["steps"]
@@ -96,12 +115,13 @@ class Experiment:
         self.emit_sample(sample)
 
     def run_step(self):
-        for router in self.routers:
-            router.tick()
+        for _, candidate in self.candidates.items():
+            candidate.run_step()
 
     def scrape(self):
         return {
-            "transmissions_per_node": self.metrics_calculator.transmissions_per_node(),
-            "routability_rate": self.metrics_calculator.routability_rate(),
-            "efficiency": self.metrics_calculator.efficiency(),
+            "candidates": {
+                name: candidate.scrape()
+                for name, candidate in self.candidates.items()
+            },
         }
