@@ -13,8 +13,8 @@ def run():
     experiment = measure.Experiment(
         config={
             "measurement": {
-                "steps": 1000,
-                "samples": 10,
+                "steps": 3000,
+                "samples": 100,
             },
             "network": {
                 "node_count": 100,
@@ -24,7 +24,7 @@ def run():
                 "propagate_shortest_route": True,
             },
         },
-        emit_sample=dump_sample
+        emit_sample=dump_sample,
     )
     experiment.run()
 
