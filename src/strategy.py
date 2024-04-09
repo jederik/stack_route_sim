@@ -27,6 +27,11 @@ def _shortest_route(routes, target):
     return shortest_route
 
 
+class Worker:
+    def execute(self):
+        raise Exception("not implemented")
+
+
 class SimpleRouter(routing.Router, net.Adapter.Handler):
     def __init__(
             self,
@@ -34,6 +39,7 @@ class SimpleRouter(routing.Router, net.Adapter.Handler):
             node_id: _NodeId,
             propagation_route_picker: Callable[[_RouteStore], _Route],
     ):
+        self.workers: list[Worker] = []
         self.pick_propagation_route = propagation_route_picker
         self.routes: _RouteStore = {
             node_id: [[]]
@@ -45,14 +51,8 @@ class SimpleRouter(routing.Router, net.Adapter.Handler):
         return target in self.routes and len(self.routes[target]) != 0
 
     def tick(self):
-        self.propagate_route()
-
-    def propagate_route(self):
-        ports = self.adapter.ports()
-        port_num = ports[int(random.random() * len(ports))]
-        target_id, route = self.pick_propagation_route(self.routes)
-        prop_msg = RoutePropagationMessage(target_id, route)
-        self.adapter.send(port_num, prop_msg)
+        for worker in self.workers:
+            worker.execute()
 
     def handle(self, port_num: _PortNumber, message):
         prop: RoutePropagationMessage = message
@@ -90,14 +90,35 @@ class RoutingStrategy:
         raise Exception("not implemented")
 
 
+class RoutePropagator(Worker):
+    def __init__(self, router: SimpleRouter, propagation_route_picker: Callable[[_RouteStore], _Route]):
+        self.router = router
+        self.pick_propagation_route = propagation_route_picker
+
+    def execute(self):
+        ports = self.router.adapter.ports()
+        port_num = ports[int(random.random() * len(ports))]
+        target_id, route = self.pick_propagation_route(self.router.routes)
+        prop_msg = RoutePropagationMessage(target_id, route)
+        self.router.adapter.send(port_num, prop_msg)
+
+
 class SimpleRoutingStrategy(RoutingStrategy):
     def __init__(self, config):
         self.config = config
 
     def build_router(self, adapter: net.Adapter, node_id: _NodeId):
-        return SimpleRouter(
+        router = SimpleRouter(
             adapter=adapter,
             node_id=node_id,
             propagation_route_picker=_pick_propagation_route_shortest if self.config[
                 "propagate_shortest_route"] else _pick_propagation_route_random,
         )
+        router.workers = [
+            RoutePropagator(
+                router=router,
+                propagation_route_picker=_pick_propagation_route_shortest if self.config[
+                    "propagate_shortest_route"] else _pick_propagation_route_random
+            ),
+        ]
+        return router
