@@ -1,7 +1,7 @@
 #!/bin/bash
 
 data=$(mktemp)
-python -m src.main \
+python -m src.main "$@" \
 | jq '[.candidates.random.transmissions_per_node, .candidates.random.efficiency, .candidates.shortest.transmissions_per_node, .candidates.shortest.efficiency]' \
 | jq -r 'map(tostring) | join("\t")' \
 > "$data"

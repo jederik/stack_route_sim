@@ -32,7 +32,7 @@ class SimpleRouter(routing.Router, net.Adapter.Handler):
             self,
             adapter: net.Adapter,
             node_id: _NodeId,
-            propagation_route_picker: Callable[[_RouteStore], _Route]
+            propagation_route_picker: Callable[[_RouteStore], _Route],
     ):
         self.pick_propagation_route = propagation_route_picker
         self.routes: _RouteStore = {
