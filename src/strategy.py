@@ -1,7 +1,8 @@
 import random
 from typing import Optional, Callable
 
-from src import net, routing
+import net
+import routing
 from routes import NodeId, RouteStore, Route, PortNumber
 
 

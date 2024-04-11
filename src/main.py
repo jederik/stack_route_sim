@@ -4,7 +4,7 @@ import json
 import yaml
 import sys
 
-from src import measure
+import measure
 
 
 def dump_sample(sample):

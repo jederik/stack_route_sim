@@ -1,6 +1,9 @@
 import random
 
-from src import routing, net, strategy, graphs
+import graphs
+import net
+import routing
+import strategy
 
 
 def generate_network(config):
