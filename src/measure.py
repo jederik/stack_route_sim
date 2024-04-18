@@ -3,7 +3,8 @@ import random
 import graphs
 import net
 import routing
-import strategies.simple
+import strategies
+from strategy import RoutingStrategy
 
 
 def generate_network(config):
@@ -75,9 +76,9 @@ class MetricsCalculator:
 
 
 class Candidate:
-    def __init__(self, config):
+    def __init__(self, config, strategy: RoutingStrategy):
         self.network: net.Network = generate_network(config["network"])
-        self.strategy = strategies.simple.SimpleRoutingStrategy(config["strategy"])
+        self.strategy = strategy
         self.routers: list[routing.Router] = [
             self.strategy.build_router(adapter, node_id)
             for node_id, adapter in enumerate(self.network.adapters)
@@ -96,12 +97,22 @@ class Candidate:
         }
 
 
+def _create_candidate(config):
+    strategy_config = config["strategy"]
+    strategy_name: str = strategy_config["name"]
+    if strategy_name == "simple":
+        strategy = strategies.simple.SimpleRoutingStrategy(strategy_config)
+    else:
+        raise Exception(f"unknown routing strategy: {strategy_name}")
+    return Candidate(config, strategy)
+
+
 class Experiment:
     def __init__(self, config, sample_emitter):
         self.config = config["measurement"]
         self.emit_sample = sample_emitter
         self.candidates: dict[str, Candidate] = {
-            name: Candidate(candidate_config)
+            name: _create_candidate(candidate_config)
             for name, candidate_config in config["candidates"].items()
         }
 

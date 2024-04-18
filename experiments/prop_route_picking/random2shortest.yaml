@@ -7,10 +7,12 @@ candidates:
       node_count: 100
       density: .1
     strategy:
+      name: simple
       propagate_shortest_route: False
   shortest:
     network:
       node_count: 100
       density: .1
     strategy:
+      name: simple
       propagate_shortest_route: True
