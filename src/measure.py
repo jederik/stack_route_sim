@@ -98,13 +98,22 @@ class Candidate:
 
 
 def _create_candidate(config):
-    strategy_config = config["strategy"]
+    return Candidate(
+        config=config,
+        strategy=_create_strategy(config["strategy"]),
+    )
+
+
+def _create_strategy(strategy_config):
     strategy_name: str = strategy_config["name"]
     if strategy_name == "simple":
-        strategy = strategies.simple.SimpleRoutingStrategy(strategy_config)
+        constructor = strategies.simple.SimpleRoutingStrategy
+    elif strategy_name == "optimised":
+        constructor = strategies.optimised.OptimisedRoutingStrategy
     else:
         raise Exception(f"unknown routing strategy: {strategy_name}")
-    return Candidate(config, strategy)
+    strategy = constructor(strategy_config)
+    return strategy
 
 
 class Experiment:
