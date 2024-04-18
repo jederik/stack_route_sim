@@ -27,20 +27,18 @@ class _Edge:
         self.routes: list[Route] = []
 
 
-class OptimisedRouter(Router, net.Adapter.Handler):
-    def __init__(self, adapter: net.Adapter, node_id: NodeId):
-        self.edges: dict[NodeId, dict[NodeId, _Edge]] = {
-            node_id: {
-                node_id: _Edge()
-            }
-        }
-        self.adapter = adapter
+class RouteStore:
+    def __init__(self, node_id: NodeId):
         self.node_id = node_id
         self.path_finders: dict[NodeId, _PathFinder] = {
             node_id: _PathFinder(node_id)
         }
         self.path_finders[node_id].paths[node_id] = [[]]
-        adapter.register_handler(self)
+        self.edges: dict[NodeId, dict[NodeId, _Edge]] = {
+            node_id: {
+                node_id: _Edge()
+            }
+        }
 
     def shortest_route(self, target: NodeId) -> Route:
         if target == self.node_id:
@@ -54,22 +52,6 @@ class OptimisedRouter(Router, net.Adapter.Handler):
 
     def has_route(self, target: NodeId) -> bool:
         return target in self.path_finders
-
-    def handle(self, port_num: PortNumber, message):
-        message: PropagationMessage = message
-        self._store_route(
-            source=self.node_id,
-            target=message.target,
-            route=[port_num] + message.route,
-        )
-
-    def tick(self):
-        port, target, route = self._pick_propagation()
-        self._send_propagation_message(port, target, route)
-
-    def _send_propagation_message(self, port_num: PortNumber, target: NodeId, route: Route):
-        message = PropagationMessage(target, route)
-        self.adapter.send(port_num, message)
 
     def _store_route(self, source: NodeId, target: NodeId, route: Route):
         if target == source:
@@ -116,10 +98,41 @@ class OptimisedRouter(Router, net.Adapter.Handler):
         if self.node_id not in path_finder.paths:
             path_finder.paths[self.node_id] = [route]
 
+    def store_route(self, target: NodeId, route: Route):
+        return self._store_route(self.node_id, target, route)
+
+
+class OptimisedRouter(Router, net.Adapter.Handler):
+    def __init__(self, adapter: net.Adapter, node_id: NodeId):
+        self.adapter = adapter
+        self.store = RouteStore(node_id)
+        adapter.register_handler(self)
+
+    def shortest_route(self, target: NodeId) -> Route:
+        return self.store.shortest_route(target)
+
+    def has_route(self, target: NodeId) -> bool:
+        return self.store.has_route(target)
+
+    def handle(self, port_num: PortNumber, message):
+        message: PropagationMessage = message
+        self.store.store_route(
+            target=message.target,
+            route=[port_num] + message.route,
+        )
+
+    def tick(self):
+        port, target, route = self._pick_propagation()
+        self._send_propagation_message(port, target, route)
+
+    def _send_propagation_message(self, port_num: PortNumber, target: NodeId, route: Route):
+        message = PropagationMessage(target, route)
+        self.adapter.send(port_num, message)
+
     def _pick_propagation(self) -> (PortNumber, NodeId, Route):
         ports = self.adapter.ports()
         port = ports[int(random.random() * len(ports))]
-        node_ids = list(self.path_finders.keys())
+        node_ids = list(self.store.path_finders.keys())
         target = node_ids[int(random.random() * len(node_ids))]
         route = self.shortest_route(target)
         return port, target, route
