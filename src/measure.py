@@ -3,7 +3,7 @@ import random
 import graphs
 import net
 import routing
-import strategy
+import strategies.simple
 
 
 def generate_network(config):
@@ -77,7 +77,7 @@ class MetricsCalculator:
 class Candidate:
     def __init__(self, config):
         self.network: net.Network = generate_network(config["network"])
-        self.strategy = strategy.SimpleRoutingStrategy(config["strategy"])
+        self.strategy = strategies.simple.SimpleRoutingStrategy(config["strategy"])
         self.routers: list[routing.Router] = [
             self.strategy.build_router(adapter, node_id)
             for node_id, adapter in enumerate(self.network.adapters)
