@@ -1,3 +1,5 @@
+from typing import Optional
+
 from routes import Route, NodeId
 
 
@@ -8,5 +10,5 @@ class Router:
     def has_route(self, target: NodeId) -> bool:
         raise Exception("not implemented")
 
-    def shortest_route(self, target: NodeId) -> Route:
+    def route(self, target: NodeId) -> Optional[Route]:
         raise Exception("not implemented")

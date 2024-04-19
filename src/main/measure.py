@@ -67,7 +67,7 @@ class MetricsCalculator:
             router = self.routers[i]
             for j in range(len(self.network.nodes)):
                 if router.has_route(j):
-                    shortest_route = router.shortest_route(j)
+                    shortest_route = router.route(j)
                     route_lengths += len(shortest_route)
                     node_distances += distances[i][j]
         if route_lengths == 0:

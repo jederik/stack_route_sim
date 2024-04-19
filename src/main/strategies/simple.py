@@ -3,8 +3,11 @@ from typing import Callable, Optional
 
 import net
 import routing
-from routes import NodeId, RouteStore, Route, PortNumber
+from routes import NodeId, Route, PortNumber
 from strategy import RoutingStrategy
+
+_NodeRoutes = list[Route]
+_RouteStore = dict[NodeId, _NodeRoutes]
 
 
 class SimpleRouter(routing.Router, net.Adapter.Handler):
@@ -12,11 +15,11 @@ class SimpleRouter(routing.Router, net.Adapter.Handler):
             self,
             adapter: net.Adapter,
             node_id: NodeId,
-            propagation_route_picker: Callable[[RouteStore], Route],
+            propagation_route_picker: Callable[[_RouteStore], Route],
     ):
         self.workers: list[Worker] = []
         self.pick_propagation_route = propagation_route_picker
-        self.routes: RouteStore = {
+        self.routes: _RouteStore = {
             node_id: [[]]
         }
         self.adapter = adapter
@@ -36,7 +39,7 @@ class SimpleRouter(routing.Router, net.Adapter.Handler):
         route.append(port_num)
         node_routes.append(route)
 
-    def shortest_route(self, target: NodeId) -> Optional[Route]:
+    def route(self, target: NodeId) -> Optional[Route]:
         return _shortest_route(self.routes, target)
 
     def _get_node_routes(self, node_id: NodeId):
@@ -58,21 +61,21 @@ class Worker:
         raise Exception("not implemented")
 
 
-def _pick_propagation_route_random(routes: RouteStore) -> (NodeId, Route):
+def _pick_propagation_route_random(routes: _RouteStore) -> (NodeId, Route):
     nodes = list(routes.keys())
     node_id = nodes[int(random.random() * len(nodes))]
     node_routes = routes[node_id]
     return node_id, node_routes[int(random.random() * len(node_routes))]
 
 
-def _pick_propagation_route_shortest(routes: RouteStore) -> (NodeId, Route):
+def _pick_propagation_route_shortest(routes: _RouteStore) -> (NodeId, Route):
     nodes = list(routes.keys())
     node_id = nodes[int(random.random() * len(nodes))]
     return node_id, _shortest_route(routes, node_id)
 
 
 class RoutePropagator(Worker):
-    def __init__(self, router: SimpleRouter, propagation_route_picker: Callable[[RouteStore], Route]):
+    def __init__(self, router: SimpleRouter, propagation_route_picker: Callable[[_RouteStore], Route]):
         self.router = router
         self.pick_propagation_route = propagation_route_picker
 

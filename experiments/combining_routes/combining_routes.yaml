@@ -1,0 +1,17 @@
+measurement:
+  steps: 300
+  samples: 10
+candidates:
+  shortest:
+    network:
+      node_count: 100
+      density: .1
+    strategy:
+      name:  simple
+      propagate_shortest_route: True
+  optimised:
+    network:
+      node_count: 100
+      density: .1
+    strategy:
+      name: optimised
