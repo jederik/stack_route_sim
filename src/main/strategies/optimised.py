@@ -246,13 +246,16 @@ class OptimisedRouter(Router, net.Adapter.Handler):
         self.store = RouteStore(node_id)
         adapter.register_handler(self)
 
-    def route(self, target: NodeId) -> Route:
-        return self.store.shortest_route(target).path
+    def route(self, target: NodeId) -> Optional[Route]:
+        priced_route = self.store.shortest_route(target)
+        if not priced_route:
+            return None
+        return priced_route.path
 
     def has_route(self, target: NodeId) -> bool:
         return self.store.has_route(target)
 
-    def handle(self, port_num: PortNumber, message):
+    def handle(self, port_num: PortNumber, message) -> None:
         message: PropagationMessage = message
         self.store.insert(
             target=message.target,
@@ -260,7 +263,7 @@ class OptimisedRouter(Router, net.Adapter.Handler):
             cost=message.cost,
         )
 
-    def tick(self):
+    def tick(self) -> None:
         port, target, route, cost = self._pick_propagation()
         self._send_propagation_message(port, target, route, cost)
 
@@ -268,12 +271,14 @@ class OptimisedRouter(Router, net.Adapter.Handler):
         message = PropagationMessage(target, route, cost)
         self.adapter.send(port_num, message)
 
-    def _pick_propagation(self) -> (PortNumber, NodeId, Route, Cost):
+    def _pick_propagation(self) -> tuple[PortNumber, NodeId, Route, Cost]:
         ports = self.adapter.ports()
         port = ports[int(random.random() * len(ports))]
         node_ids = list(self.store.nodes.keys())
         target = node_ids[int(random.random() * len(node_ids))]
         priced_route = self.store.shortest_route(target)
+        if priced_route is None:
+            raise Exception(f"node {target} is unreachable")
         return port, target, priced_route.path, priced_route.cost
 
 

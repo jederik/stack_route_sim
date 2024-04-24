@@ -7,16 +7,16 @@ from routes import PortNumber
 
 class Adapter:
     class Handler:
-        def handle(self, port_num: PortNumber, message):
+        def handle(self, port_num: PortNumber, message) -> None:
             raise Exception("not implemented")
 
-    def send(self, port_num: PortNumber, message):
+    def send(self, port_num: PortNumber, message) -> None:
         raise Exception("not implemented")
 
     def ports(self) -> list[PortNumber]:
         raise Exception("not implemented")
 
-    def register_handler(self, handler: Handler):
+    def register_handler(self, handler: Handler) -> None:
         raise Exception("not implemented")
 
 

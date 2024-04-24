@@ -4,7 +4,7 @@ from routes import Route, NodeId
 
 
 class Router:
-    def tick(self):
+    def tick(self) -> None:
         raise Exception("not implemented")
 
     def has_route(self, target: NodeId) -> bool:
