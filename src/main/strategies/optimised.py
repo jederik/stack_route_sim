@@ -183,9 +183,9 @@ class RouteStore:
 
     def update_distances(self, distance_modified_nodes: list[NodeId]):
         # Dijkstra:
-        for node in self.nodes.values():
-            node.predecessor = None
-            node.distance = math.inf
+        for i in self.nodes.keys():
+            self.nodes[i].predecessor = None
+            self.nodes[i].distance = math.inf
         self.nodes[self.node_id].distance = 0
         queue: list[NodeId] = list(self.nodes.keys())
         explored: set[NodeId] = set()
