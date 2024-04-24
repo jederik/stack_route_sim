@@ -109,6 +109,7 @@ class RouteStore:
             for successor, edge in self.nodes[source].edges.items():
                 for priced_route in edge.priced_routes:
                     if priced_route.path == route:
+                        # TODO potentially update cost
                         return []
 
             # see if target lies on any existing edge
