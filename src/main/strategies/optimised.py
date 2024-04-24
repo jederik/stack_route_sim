@@ -42,8 +42,7 @@ class _Edge:
             key=lambda pr: pr.cost,
         )
 
-    def update_paths(self, priced_routes):
-        priced_routes: PricedRoute = priced_routes
+    def update_paths(self, priced_routes: list[PricedRoute]):
         self.priced_routes = priced_routes
 
     def cost(self) -> Cost:
