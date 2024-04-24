@@ -11,12 +11,6 @@ from routing import Router
 from strategy import RoutingStrategy
 
 
-class _PathFinder:
-    def __init__(self, best_pred: NodeId):
-        self.paths: dict[NodeId, list[Route]] = {}
-        self.best_pred = best_pred
-
-
 class PropagationMessage:
     def __init__(self, target: NodeId, route: Route, cost: Cost):
         self.cost = cost
