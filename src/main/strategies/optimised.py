@@ -1,5 +1,4 @@
 import bisect
-import copy
 import math
 import random
 import sys
@@ -156,7 +155,6 @@ class RouteStore:
             for successor, edge in self.nodes[source].edges.items():
                 for edge_route in edge.priced_routes:
                     if len(edge_route.path) == 0:
-                        self._log(self.nodes)
                         raise Exception("empty segment")
                     if is_real_prefix(edge_route.path, route):
                         distance_modified_nodes = self._store_route(
@@ -175,32 +173,8 @@ class RouteStore:
         return [target]
 
     def insert(self, target: NodeId, route: Route, cost: Cost):
-        old_nodes = copy.deepcopy(self.nodes)
         distance_modified_nodes = self._store_route(self.node_id, target, route, cost)
-
-        reached = set()
-        reached.add(self.node_id)
-        for _ in range(len(self.nodes)):
-            for i in list(reached):
-                for neighbor in self.nodes[i].edges.keys():
-                    reached.add(neighbor)
-        if not len(reached) == len(self.nodes):
-            self._log(str(
-                {
-                    "target": target,
-                    "route": route,
-                    "old_nodes": old_nodes,
-                    "new_nodes": self.nodes,
-                }
-            ))
-            raise Exception("unrechable node")
-
         self.update_distances(distance_modified_nodes)
-
-        for node_id, node in self.nodes.items():
-            if node_id != self.node_id and node.predecessor is None:
-                self._log(f"{node_id} has no predecessor: {self.nodes}")
-                raise Exception("missing pred")
 
     def _get_node(self, node_id: NodeId):
         if node_id not in self.nodes:
@@ -215,22 +189,16 @@ class RouteStore:
         self.nodes[self.node_id].distance = 0
         queue: list[NodeId] = list(self.nodes.keys())
         explored: set[NodeId] = set()
-        seen = set()
-        seen.add(self.node_id)
         while len(queue) != 0:
             u = min(queue, key=lambda i: self.nodes[i].distance)
             queue.remove(u)
             explored.add(u)
             for v in self.nodes[u].edges.keys():
                 if v not in explored:
-                    seen.add(v)
                     alt = self.nodes[u].distance + self.nodes[u].edges[v].cost()
                     if alt < self.nodes[v].distance:
                         self.nodes[v].predecessor = u
                         self.nodes[v].distance = alt
-        if len(seen) != len(self.nodes):
-            self._log(self.nodes)
-            raise Exception(f"seen nodes: {seen}")
 
     def _log(self, msg):
         print(f"{self.node_id}: {str(msg)}", file=sys.stderr)
