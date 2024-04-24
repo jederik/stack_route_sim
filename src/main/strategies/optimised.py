@@ -174,14 +174,14 @@ class RouteStore:
 
     def insert(self, target: NodeId, route: Route, cost: Cost):
         distance_modified_nodes = self._store_route(self.node_id, target, route, cost)
-        self.update_distances(distance_modified_nodes)
+        self._update_distances(distance_modified_nodes)
 
     def _get_node(self, node_id: NodeId):
         if node_id not in self.nodes:
             self.nodes[node_id] = _Node()
         return self.nodes[node_id]
 
-    def update_distances(self, distance_modified_nodes: list[NodeId]):
+    def _update_distances(self, distance_modified_nodes: list[NodeId]):
         # Dijkstra:
         for i in self.nodes.keys():
             self.nodes[i].predecessor = None
