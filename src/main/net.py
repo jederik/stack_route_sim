@@ -2,7 +2,7 @@ import copy
 from collections import defaultdict
 from typing import Optional
 
-from routes import PortNumber
+from routes import PortNumber, Cost, NodeId
 
 
 class Adapter:
@@ -19,6 +19,9 @@ class Adapter:
     def register_handler(self, handler: Handler) -> None:
         raise Exception("not implemented")
 
+    def port_cost(self, port_num) -> Cost:
+        raise Exception("not implemented")
+
 
 class Transmission:
     def __init__(self, recipient_node_id: int, port_num: int, message):
@@ -30,9 +33,10 @@ class Transmission:
 class Network:
     class Node:
         class Port:
-            def __init__(self, target_node: int, target_port_num: int):
+            def __init__(self, target_node: int, target_port_num: int, cost: Cost):
                 self.target_port_num: int = target_port_num
                 self.target_node: int = target_node
+                self.cost = cost
 
         def __init__(self):
             self.handler = None
@@ -40,7 +44,7 @@ class Network:
             self.ports: dict[int, Network.Node.Port] = {}
 
     class AdapterImpl(Adapter):
-        def __init__(self, network: 'Network', node_id: int):
+        def __init__(self, network: 'Network', node_id: NodeId):
             self.handler: Optional[Adapter.Handler] = None
             self.network = network
             self.node_id = node_id
@@ -54,6 +58,9 @@ class Network:
         def register_handler(self, handler: Adapter.Handler):
             self.handler = handler
 
+        def port_cost(self, port_num) -> Cost:
+            return self.network.nodes[self.node_id].ports[port_num].cost
+
     def __init__(self, node_count: int):
         self._transmission_queue: list[Transmission] = []
         self.counters: dict[str, int] = defaultdict(lambda: 0)
@@ -66,13 +73,13 @@ class Network:
             for node in range(node_count)
         ]
 
-    def connect(self, node1: int, node2: int):
+    def connect(self, node1: int, node2: int, forward_cost: Cost, backward_cost: Cost):
         n1 = self.nodes[node1]
         n2 = self.nodes[node2]
         pn1 = n1.next_port_num
         pn2 = n2.next_port_num
-        n1.ports[pn1] = Network.Node.Port(node2, pn2)
-        n2.ports[pn2] = Network.Node.Port(node1, pn1)
+        n1.ports[pn1] = Network.Node.Port(node2, pn2, forward_cost)
+        n2.ports[pn2] = Network.Node.Port(node1, pn1, backward_cost)
         n1.next_port_num += 1
         n2.next_port_num += 1
 

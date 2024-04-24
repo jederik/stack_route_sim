@@ -18,17 +18,17 @@ def generate_network(config):
     for n1 in range(len(network.nodes)):
         for n2 in range(len(network.nodes)):
             if p > random.random():
-                network.connect(n1, n2)
+                network.connect(n1, n2, 1, 1)
 
     return network
 
 
-def to_graph(network: net.Network) -> list[list[int]]:
+def to_graph(network: net.Network) -> list[dict[int, float]]:
     return [
-        [
-            port.target_node
+        {
+            port.target_node: port.cost
             for port in node.ports.values()
-        ]
+        }
         for node in network.nodes
     ]
 

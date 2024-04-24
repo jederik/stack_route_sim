@@ -16,12 +16,12 @@ def reachabilities(adj_lists: list[list[int]]) -> list[list[bool]]:
     return cover
 
 
-def distances(adj_lists: list[list[int]]) -> list[list[float]]:
+def distances(adj_lists: list[dict[int, float]]) -> list[list[float]]:
     n = len(adj_lists)
     dist = [[math.inf for _ in range(n)] for _ in range(n)]
     for i in range(n):
-        for j in adj_lists[i]:
-            dist[i][j] = 1
+        for j, cost in adj_lists[i].items():
+            dist[i][j] = cost
         dist[i][i] = 0
     for k in range(n):
         for i in range(n):
