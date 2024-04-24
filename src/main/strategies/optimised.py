@@ -22,53 +22,56 @@ def is_real_prefix(short: Route, long: Route) -> bool:
     return len(short) != len(long) and short == long[:len(short)]
 
 
+class PricedRoute:
+    def __init__(self, path: Route, cost: Cost):
+        self.path = path
+        self.cost = cost
+
+
+class _Edge:
+    def __init__(self):
+        self.priced_routes: list[PricedRoute] = []
+
+    def __repr__(self):
+        return str({"routes": [pr.path for pr in self.priced_routes]})
+
+    def insert_path(self, route: Route, cost: Cost):
+        bisect.insort(
+            self.priced_routes,
+            PricedRoute(route, cost),
+            key=lambda pr: pr.cost,
+        )
+
+    def update_paths(self, priced_routes):
+        priced_routes: PricedRoute = priced_routes
+        self.priced_routes = priced_routes
+
+    def cost(self) -> Cost:
+        if len(self.priced_routes) == 0:
+            return math.inf
+        return self.priced_routes[0].cost
+
+
+class _Node:
+    def __init__(self, distance: Cost = math.inf, predecessor: Optional[NodeId] = None):
+        self.distance: Cost = distance
+        self.predecessor: Optional[NodeId] = predecessor
+        self.edges: dict[NodeId, _Edge] = {}
+
+    def __repr__(self):
+        return str({"edges": self.edges})
+
+    def get_edge(self, target):
+        if target not in self.edges:
+            self.edges[target] = _Edge()
+        return self.edges[target]
+
+
 class RouteStore:
-    class PricedRoute:
-        def __init__(self, path: Route, cost: Cost):
-            self.path = path
-            self.cost = cost
-
-    class _Edge:
-        def __init__(self):
-            self.priced_routes: list[RouteStore.PricedRoute] = []
-
-        def __repr__(self):
-            return str({"routes": [pr.path for pr in self.priced_routes]})
-
-        def insert_path(self, route: Route, cost: Cost):
-            bisect.insort(
-                self.priced_routes,
-                RouteStore.PricedRoute(route, cost),
-                key=lambda pr: pr.cost,
-            )
-
-        def update_paths(self, priced_routes):
-            priced_routes: RouteStore.PricedRoute = priced_routes
-            self.priced_routes = priced_routes
-
-        def cost(self) -> Cost:
-            if len(self.priced_routes) == 0:
-                return math.inf
-            return self.priced_routes[0].cost
-
-    class _Node:
-        def __init__(self, distance: Cost = math.inf, predecessor: Optional[NodeId] = None):
-            self.distance: Cost = distance
-            self.predecessor: Optional[NodeId] = predecessor
-            self.edges: dict[NodeId, RouteStore._Edge] = {}
-
-        def __repr__(self):
-            return str({"edges": self.edges})
-
-        def get_edge(self, target):
-            if target not in self.edges:
-                self.edges[target] = RouteStore._Edge()
-            return self.edges[target]
-
     def __init__(self, node_id: NodeId):
         self.node_id = node_id
-        self.nodes: dict[NodeId, RouteStore._Node] = {
-            node_id: RouteStore._Node(
+        self.nodes: dict[NodeId, _Node] = {
+            node_id: _Node(
                 distance=0,
                 predecessor=None,
             )
@@ -76,7 +79,7 @@ class RouteStore:
 
     def shortest_route(self, target: NodeId) -> Optional[PricedRoute]:
         if target == self.node_id:
-            return RouteStore.PricedRoute([], 0)
+            return PricedRoute([], 0)
         if target not in self.nodes:
             return None
         pred = self.nodes[target].predecessor
@@ -88,7 +91,7 @@ class RouteStore:
         if pred_route is None:
             return None
         last_mile = self.nodes[pred].edges[target].priced_routes[0]
-        return RouteStore.PricedRoute(
+        return PricedRoute(
             path=pred_route.path + last_mile.path,
             cost=pred_route.cost + last_mile.cost
         )
@@ -124,11 +127,11 @@ class RouteStore:
                 if len(prefixed_edge_routes) != 0:
 
                     if target not in self.nodes:
-                        self.nodes[target] = RouteStore._Node()
+                        self.nodes[target] = _Node()
 
                     # insert path between source and target
                     if target not in self.nodes[source].edges:
-                        self.nodes[source].edges[target] = RouteStore._Edge()
+                        self.nodes[source].edges[target] = _Edge()
                     self.nodes[source].edges[target].insert_path(route, cost)
 
                     # add paths between target and successor
@@ -138,7 +141,7 @@ class RouteStore:
                             raise Exception("empty remainder")
                         remaining_cost = prefixed_edge_route.cost - cost
                         if successor not in self.nodes[target].edges:
-                            self.nodes[target].edges[successor] = RouteStore._Edge()
+                            self.nodes[target].edges[successor] = _Edge()
                         self.nodes[target].edges[successor].insert_path(remaining_route, remaining_cost)
 
                     # remove replaced paths
@@ -167,8 +170,8 @@ class RouteStore:
 
         if target not in self.nodes[source].edges:
             if target not in self.nodes:
-                self.nodes[target] = RouteStore._Node()
-            self.nodes[source].edges[target] = RouteStore._Edge()
+                self.nodes[target] = _Node()
+            self.nodes[source].edges[target] = _Edge()
         self.nodes[source].edges[target].insert_path(route, cost)
         return [target]
 
@@ -202,7 +205,7 @@ class RouteStore:
 
     def _get_node(self, node_id: NodeId):
         if node_id not in self.nodes:
-            self.nodes[node_id] = RouteStore._Node()
+            self.nodes[node_id] = _Node()
         return self.nodes[node_id]
 
     def update_distances(self, distance_modified_nodes: list[NodeId]):
