@@ -224,7 +224,7 @@ class OptimisedRouter(Router, net.Adapter.Handler):
         self.store.insert(
             target=message.target,
             route=[port_num] + message.route,
-            cost=message.cost,
+            cost=message.cost + self.adapter.port_cost(port_num),
         )
 
     def tick(self) -> None:
