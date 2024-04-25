@@ -1,12 +1,14 @@
 import math
 
+CostGraph = dict[int, dict[int, float]]
 
-def reachabilities(adj_lists: list[list[int]]) -> list[list[bool]]:
+
+def reachabilities(adj_lists: CostGraph) -> list[list[bool]]:
     n = len(adj_lists)
     cover = [[False for _ in range(n)] for _ in range(n)]
     for i in range(n):
         cover[i][i] = True
-        for j in adj_lists[i]:
+        for j in adj_lists[i].keys():
             cover[i][j] = True
     for k in range(n):
         for i in range(n):
@@ -16,7 +18,7 @@ def reachabilities(adj_lists: list[list[int]]) -> list[list[bool]]:
     return cover
 
 
-def distances(adj_lists: list[dict[int, float]]) -> list[list[float]]:
+def distances(adj_lists: CostGraph) -> list[list[float]]:
     n = len(adj_lists)
     dist = [[math.inf for _ in range(n)] for _ in range(n)]
     for i in range(n):

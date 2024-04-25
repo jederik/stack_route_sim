@@ -1,1 +1,3 @@
-- clean up
+- separate router and store
+- make optimised router more efficient
+- find out why optimisation doesn't improve routing efficiency

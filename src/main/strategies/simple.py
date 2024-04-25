@@ -88,7 +88,7 @@ class RoutePropagator(Worker):
 
 
 class SimpleRoutingStrategy(RoutingStrategy):
-    def __init__(self, config):
+    def __init__(self, config, rnd: random.Random):
         self.config = config
 
     def build_router(self, adapter: net.Adapter, node_id: NodeId):

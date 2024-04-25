@@ -6,12 +6,15 @@ candidates:
     network:
       node_count: 100
       density: .1
-    strategy:
-      name:  simple
-      propagate_shortest_route: True
-  optimised:
+    routing:
+      name: optimised
+      propagation:
+        name: shortest_route
+  random:
     network:
       node_count: 100
       density: .1
-    strategy:
+    routing:
       name: optimised
+      propagation:
+        name: random_route

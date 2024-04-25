@@ -4,10 +4,11 @@ import graphs
 import net
 import routing
 import strategies
+from routes import Route, Cost, NodeId
 from strategy import RoutingStrategy
 
 
-def generate_network(config):
+def generate_network(config, rnd: random.Random = random.Random()):
     # create nodes
     network = net.Network(
         node_count=config["node_count"]
@@ -17,20 +18,20 @@ def generate_network(config):
     p = config["density"]
     for n1 in range(len(network.nodes)):
         for n2 in range(len(network.nodes)):
-            if p > random.random():
+            if p > rnd.random():
                 network.connect(n1, n2, 1, 1)
 
     return network
 
 
-def to_graph(network: net.Network) -> list[dict[int, float]]:
-    return [
-        {
+def to_graph(network: net.Network) -> graphs.CostGraph:
+    return {
+        node_id: {
             port.target_node: port.cost
             for port in node.ports.values()
         }
-        for node in network.nodes
-    ]
+        for node_id, node in enumerate(network.nodes)
+    }
 
 
 class MetricsCalculator:
@@ -38,6 +39,15 @@ class MetricsCalculator:
         self.network = network
         self.routers = routers
         self.graph = to_graph(self.network)
+
+    def route_cost(self, source: NodeId, route: Route) -> Cost:
+        route_cost = 0
+        node = source
+        for port_num in route:
+            port = self.network.nodes[node].ports[port_num]
+            route_cost += port.cost
+            node = port.target_node
+        return route_cost
 
     def transmissions_per_node(self):
         return self.network.get_counter({"name": "transmission_count", "success": "true"}) / len(self.network.nodes)
@@ -64,11 +74,10 @@ class MetricsCalculator:
         node_distances = 0
         distances = graphs.distances(self.graph)
         for i in range(len(self.network.nodes)):
-            router = self.routers[i]
             for j in range(len(self.network.nodes)):
-                if router.has_route(j):
-                    shortest_route = router.route(j)
-                    route_lengths += len(shortest_route)
+                route = self.routers[i].route(j)
+                if route is not None:
+                    route_lengths += self.route_cost(i, route)
                     node_distances += distances[i][j]
         if route_lengths == 0:
             return 1
@@ -76,11 +85,11 @@ class MetricsCalculator:
 
 
 class Candidate:
-    def __init__(self, config, strategy: RoutingStrategy):
+    def __init__(self, config, routing_strategy: RoutingStrategy):
         self.network: net.Network = generate_network(config["network"])
-        self.strategy = strategy
+        self.routing_strategy = routing_strategy
         self.routers: list[routing.Router] = [
-            self.strategy.build_router(adapter, node_id)
+            self.routing_strategy.build_router(adapter, node_id)
             for node_id, adapter in enumerate(self.network.adapters)
         ]
         self.metrics_calculator = MetricsCalculator(self.network, self.routers)
@@ -100,7 +109,7 @@ class Candidate:
 def _create_candidate(config):
     return Candidate(
         config=config,
-        strategy=_create_strategy(config["strategy"]),
+        routing_strategy=_create_strategy(config["routing"]),
     )
 
 
@@ -112,7 +121,7 @@ def _create_strategy(strategy_config):
         constructor = strategies.optimised.OptimisedRoutingStrategy
     else:
         raise Exception(f"unknown routing strategy: {strategy_name}")
-    strategy = constructor(strategy_config)
+    strategy = constructor(strategy_config, random.Random())
     return strategy
 
 

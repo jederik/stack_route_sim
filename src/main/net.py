@@ -41,7 +41,7 @@ class Network:
         def __init__(self):
             self.handler = None
             self.next_port_num: int = 0
-            self.ports: dict[int, Network.Node.Port] = {}
+            self.ports: dict[PortNumber, Network.Node.Port] = {}
 
     class AdapterImpl(Adapter):
         def __init__(self, network: 'Network', node_id: NodeId):
@@ -96,7 +96,7 @@ class Network:
 
     def _process_queue(self):
         while len(self._transmission_queue) != 0:
-            transmission = self._transmission_queue.pop()
+            transmission = self._transmission_queue.pop(0)
             adapter = self.adapters[transmission.recipient_node_id]
             if adapter.handler is None:
                 self._increase_counter({"name": "transmission_count", "success": "false"})

@@ -2,7 +2,7 @@ import bisect
 import math
 import random
 import sys
-from typing import Optional
+from typing import Optional, TypeVar
 
 import net
 from routes import NodeId, Route, PortNumber, Cost
@@ -65,8 +65,16 @@ class _Node:
         return self.edges[target]
 
 
+T = TypeVar('T')
+
+
+def _pick_random(items: list[T], rnd: random.Random) -> T:
+    return items[int(rnd.random() * len(items))]
+
+
 class RouteStore:
-    def __init__(self, node_id: NodeId):
+    def __init__(self, node_id: NodeId, rnd: random.Random = random.Random()):
+        self.rnd = rnd
         self.node_id = node_id
         self.nodes: dict[NodeId, _Node] = {
             node_id: _Node(
@@ -204,11 +212,26 @@ class RouteStore:
     def _log(self, msg):
         print(f"{self.node_id}: {str(msg)}", file=sys.stderr)
 
+    def _pick_random(self, items: list[T]) -> T:
+        return _pick_random(items, self.rnd)
+
+
+class PropagationStrategy:
+    def pick(self, router: 'OptimisedRouter'):
+        raise Exception("not implemented")
+
 
 class OptimisedRouter(Router, net.Adapter.Handler):
-    def __init__(self, adapter: net.Adapter, node_id: NodeId):
+    def __init__(
+            self,
+            adapter: net.Adapter,
+            node_id: NodeId,
+            propagation_strategy: PropagationStrategy,
+            rnd: random.Random
+    ):
         self.adapter = adapter
-        self.store = RouteStore(node_id)
+        self.store = RouteStore(node_id, rnd)
+        self._propagation_strategy = propagation_strategy
         adapter.register_handler(self)
 
     def route(self, target: NodeId) -> Optional[Route]:
@@ -229,27 +252,68 @@ class OptimisedRouter(Router, net.Adapter.Handler):
         )
 
     def tick(self) -> None:
-        port, target, route, cost = self._pick_propagation()
+        port, target, route, cost = self._propagation_strategy.pick(self)
         self._send_propagation_message(port, target, route, cost)
 
     def _send_propagation_message(self, port_num: PortNumber, target: NodeId, route: Route, cost: Cost):
         message = PropagationMessage(target, route, cost)
         self.adapter.send(port_num, message)
 
-    def _pick_propagation(self) -> tuple[PortNumber, NodeId, Route, Cost]:
-        ports = self.adapter.ports()
-        port = ports[int(random.random() * len(ports))]
-        node_ids = list(self.store.nodes.keys())
-        target = node_ids[int(random.random() * len(node_ids))]
-        priced_route = self.store.shortest_route(target)
-        if priced_route is None:
-            raise Exception(f"node {target} is unreachable")
+
+class RandomRoutePropagationStrategy(PropagationStrategy):
+    def __init__(self, rnd: random.Random):
+        self.rnd = rnd
+
+    def pick(self, router: OptimisedRouter) -> tuple[PortNumber, NodeId, Route, Cost]:
+        ports = router.adapter.ports()
+        if len(ports) == 0:
+            raise Exception("no ports available")
+        port = _pick_random(ports, self.rnd)
+        target, route, cost = self._get_random_route(router.store)
+        return port, target, route, cost
+
+    def _get_random_route(self, store: RouteStore, source: NodeId = None) -> tuple[NodeId, Route, Cost]:
+        if source is None:
+            source = store.node_id
+        if len(store.nodes[source].edges) == 0:
+            return source, [], 0
+        if self.rnd.random() < .9:
+            return source, [], 0
+        successor = _pick_random(list(store.nodes[source].edges.keys()), self.rnd)
+        target, route_tail, tail_cost = self._get_random_route(store, successor)
+        edged_route = _pick_random(store.nodes[source].edges[successor].priced_routes, self.rnd)
+        return target, edged_route.path + route_tail, edged_route.cost + tail_cost
+
+
+class ShortestRoutePropagationStrategy(PropagationStrategy):
+    def __init__(self, rnd: random.Random):
+        self.rnd = rnd
+
+    def pick(self, router: OptimisedRouter) -> tuple[PortNumber, NodeId, Route, Cost]:
+        port = _pick_random(router.adapter.ports(), self.rnd)
+        target = _pick_random(list(router.store.nodes.keys()), self.rnd)
+        priced_route = router.store.shortest_route(target)
         return port, target, priced_route.path, priced_route.cost
 
 
+def _create_propagation_strategy(propagation_config, rnd: random.Random) -> PropagationStrategy:
+    name = propagation_config["name"]
+    if name == "random_route":
+        return RandomRoutePropagationStrategy(rnd)
+    if name == "shortest_route":
+        return ShortestRoutePropagationStrategy(rnd)
+    raise Exception(f"unknown propagation strategy: {name}")
+
+
 class OptimisedRoutingStrategy(RoutingStrategy):
-    def __init__(self, config):
-        pass
+    def __init__(self, routing_config, rnd: random.Random):
+        self.rnd = rnd
+        self.propagation_strategy = _create_propagation_strategy(routing_config["propagation"], rnd)
 
     def build_router(self, adapter: net.Adapter, node_id: NodeId) -> Router:
-        return OptimisedRouter(adapter, node_id)
+        return OptimisedRouter(
+            adapter,
+            node_id,
+            propagation_strategy=self.propagation_strategy,
+            rnd=self.rnd,
+        )
