@@ -4,7 +4,7 @@ from typing import Callable, Optional
 import net
 import routing
 from routes import NodeId, Route, PortNumber
-from strategy import RoutingStrategy
+from strategy import RouterFactory
 
 _NodeRoutes = list[Route]
 _RouteStore = dict[NodeId, _NodeRoutes]
@@ -87,11 +87,11 @@ class RoutePropagator(Worker):
         self.router.adapter.send(port_num, prop_msg)
 
 
-class SimpleRoutingStrategy(RoutingStrategy):
+class SimpleRouterFactory(RouterFactory):
     def __init__(self, config, rnd: random.Random):
         self.config = config
 
-    def build_router(self, adapter: net.Adapter, node_id: NodeId):
+    def create_router(self, adapter: net.Adapter, node_id: NodeId):
         router = SimpleRouter(
             adapter=adapter,
             node_id=node_id,

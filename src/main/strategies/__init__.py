@@ -1,2 +1,2 @@
-from .simple import SimpleRoutingStrategy
-from .optimised import OptimisedRoutingStrategy
+from .simple import SimpleRouterFactory
+from .optimised import OptimisedRouterFactory

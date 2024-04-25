@@ -5,7 +5,7 @@ import net
 import routing
 import strategies
 from routes import Route, Cost, NodeId
-from strategy import RoutingStrategy
+from strategy import RouterFactory
 
 
 def generate_network(config, rnd: random.Random = random.Random()):
@@ -85,11 +85,11 @@ class MetricsCalculator:
 
 
 class Candidate:
-    def __init__(self, config, routing_strategy: RoutingStrategy):
+    def __init__(self, config, router_factory: RouterFactory):
         self.network: net.Network = generate_network(config["network"])
-        self.routing_strategy = routing_strategy
+        self.router_factory = router_factory
         self.routers: list[routing.Router] = [
-            self.routing_strategy.build_router(adapter, node_id)
+            self.router_factory.create_router(adapter, node_id)
             for node_id, adapter in enumerate(self.network.adapters)
         ]
         self.metrics_calculator = MetricsCalculator(self.network, self.routers)
@@ -109,20 +109,19 @@ class Candidate:
 def _create_candidate(config):
     return Candidate(
         config=config,
-        routing_strategy=_create_strategy(config["routing"]),
+        router_factory=_create_strategy(config["routing"]),
     )
 
 
 def _create_strategy(strategy_config):
-    strategy_name: str = strategy_config["name"]
-    if strategy_name == "simple":
-        constructor = strategies.simple.SimpleRoutingStrategy
-    elif strategy_name == "optimised":
-        constructor = strategies.optimised.OptimisedRoutingStrategy
+    strategy: str = strategy_config["strategy"]
+    if strategy == "simple":
+        constructor = strategies.simple.SimpleRouterFactory
+    elif strategy == "optimised":
+        constructor = strategies.optimised.OptimisedRouterFactory
     else:
-        raise Exception(f"unknown routing strategy: {strategy_name}")
-    strategy = constructor(strategy_config, random.Random())
-    return strategy
+        raise Exception(f"unknown routing strategy: {strategy}")
+    return constructor(strategy_config, random.Random())
 
 
 class Experiment:

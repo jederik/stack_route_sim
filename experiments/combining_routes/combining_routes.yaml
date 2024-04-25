@@ -7,14 +7,15 @@ candidates:
       node_count: 100
       density: .1
     routing:
-      name: optimised
+      strategy: optimised
       propagation:
-        name: shortest_route
+        strategy: shortest_route
   random:
     network:
       node_count: 100
       density: .1
     routing:
-      name: optimised
+      strategy: optimised
       propagation:
-        name: random_route
+        strategy: random_route
+        cutoff_rate: 0.1

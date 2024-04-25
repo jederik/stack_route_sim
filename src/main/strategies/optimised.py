@@ -7,7 +7,7 @@ from typing import Optional, TypeVar
 import net
 from routes import NodeId, Route, PortNumber, Cost
 from routing import Router
-from strategy import RoutingStrategy
+from strategy import RouterFactory
 
 
 class PropagationMessage:
@@ -89,6 +89,8 @@ class RouteStore:
         if target not in self.nodes:
             return None
         pred = self.nodes[target].predecessor
+        if pred is None:
+            raise Exception(f"node {self.node_id}: {target} has no predecessor")
         if pred not in self.nodes:
             raise Exception(f"node {self.node_id}: {pred} is best predecessor of {target} but has no outgoing edges")
         if target not in self.nodes[pred].edges:
@@ -216,7 +218,7 @@ class RouteStore:
         return _pick_random(items, self.rnd)
 
 
-class PropagationStrategy:
+class Propagator:
     def pick(self, router: 'OptimisedRouter'):
         raise Exception("not implemented")
 
@@ -226,7 +228,7 @@ class OptimisedRouter(Router, net.Adapter.Handler):
             self,
             adapter: net.Adapter,
             node_id: NodeId,
-            propagation_strategy: PropagationStrategy,
+            propagation_strategy: Propagator,
             rnd: random.Random
     ):
         self.adapter = adapter
@@ -260,8 +262,9 @@ class OptimisedRouter(Router, net.Adapter.Handler):
         self.adapter.send(port_num, message)
 
 
-class RandomRoutePropagationStrategy(PropagationStrategy):
-    def __init__(self, rnd: random.Random):
+class RandomRoutePropagator(Propagator):
+    def __init__(self, cutoff_rate: float, rnd: random.Random):
+        self.cutoff_rate = cutoff_rate
         self.rnd = rnd
 
     def pick(self, router: OptimisedRouter) -> tuple[PortNumber, NodeId, Route, Cost]:
@@ -277,7 +280,7 @@ class RandomRoutePropagationStrategy(PropagationStrategy):
             source = store.node_id
         if len(store.nodes[source].edges) == 0:
             return source, [], 0
-        if self.rnd.random() < .9:
+        if self.rnd.random() > self.cutoff_rate:
             return source, [], 0
         successor = _pick_random(list(store.nodes[source].edges.keys()), self.rnd)
         target, route_tail, tail_cost = self._get_random_route(store, successor)
@@ -285,7 +288,7 @@ class RandomRoutePropagationStrategy(PropagationStrategy):
         return target, edged_route.path + route_tail, edged_route.cost + tail_cost
 
 
-class ShortestRoutePropagationStrategy(PropagationStrategy):
+class ShortestRoutePropagator(Propagator):
     def __init__(self, rnd: random.Random):
         self.rnd = rnd
 
@@ -296,24 +299,24 @@ class ShortestRoutePropagationStrategy(PropagationStrategy):
         return port, target, priced_route.path, priced_route.cost
 
 
-def _create_propagation_strategy(propagation_config, rnd: random.Random) -> PropagationStrategy:
-    name = propagation_config["name"]
+def _create_propagator(propagation_config, rnd: random.Random) -> Propagator:
+    name = propagation_config["strategy"]
     if name == "random_route":
-        return RandomRoutePropagationStrategy(rnd)
+        return RandomRoutePropagator(propagation_config["cutoff_rate"], rnd)
     if name == "shortest_route":
-        return ShortestRoutePropagationStrategy(rnd)
+        return ShortestRoutePropagator(rnd)
     raise Exception(f"unknown propagation strategy: {name}")
 
 
-class OptimisedRoutingStrategy(RoutingStrategy):
+class OptimisedRouterFactory(RouterFactory):
     def __init__(self, routing_config, rnd: random.Random):
         self.rnd = rnd
-        self.propagation_strategy = _create_propagation_strategy(routing_config["propagation"], rnd)
+        self.propagator = _create_propagator(routing_config["propagation"], rnd)
 
-    def build_router(self, adapter: net.Adapter, node_id: NodeId) -> Router:
+    def create_router(self, adapter: net.Adapter, node_id: NodeId) -> Router:
         return OptimisedRouter(
             adapter,
             node_id,
-            propagation_strategy=self.propagation_strategy,
+            propagation_strategy=self.propagator,
             rnd=self.rnd,
         )

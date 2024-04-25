@@ -5,7 +5,7 @@ import net
 from routes import NodeId, Route, Cost, PortNumber
 from routing import Router
 from strategies.optimised import PropagationMessage
-from strategy import RoutingStrategy
+from strategy import RouterFactory
 
 
 class _Segment:
@@ -119,6 +119,6 @@ class CombiningRouter(Router, net.Adapter.Handler):
         return port_nums[int(random.random() * len(port_nums))]
 
 
-class CombiningRoutingStrategy(RoutingStrategy):
-    def build_router(self, adapter: net.Adapter, node_id: NodeId) -> Router:
+class CombiningRouterFactory(RouterFactory):
+    def create_router(self, adapter: net.Adapter, node_id: NodeId) -> Router:
         return CombiningRouter(node_id, adapter)

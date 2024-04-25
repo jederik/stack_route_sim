@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from strategies.optimised import RandomRoutePropagationStrategy, RouteStore, _Node, _Edge, PricedRoute
+from strategies.optimised import RandomRoutePropagator, RouteStore, _Node, _Edge, PricedRoute
 
 
 class MyTestCase(unittest.TestCase):
@@ -36,7 +36,7 @@ class MyTestCase(unittest.TestCase):
         rnd.random = Mock(side_effect=case["given"]["rnd"])
 
         # mock
-        propagator = RandomRoutePropagationStrategy(rnd)
+        propagator = RandomRoutePropagator(, rnd
         store = RouteStore(case["given"]["my_id"])
         for node_id, given_node in case["given"]["nodes"].items():
             store.nodes[node_id] = _Node()
