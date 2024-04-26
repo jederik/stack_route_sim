@@ -4,7 +4,7 @@ import json
 import yaml
 import sys
 
-import measure
+import experiments
 
 
 def dump_sample(sample):
@@ -24,7 +24,7 @@ def read_config(path):
     help="location of the experiment config YAML"
 )
 def run(config: str):
-    experiment = measure.Experiment(
+    experiment = experiments.Experiment(
         config=read_config(config),
         sample_emitter=dump_sample,
     )
