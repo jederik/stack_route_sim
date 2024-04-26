@@ -35,10 +35,24 @@ def to_graph(network: net.Network) -> graphs.CostGraph:
 
 
 class MetricsCalculator:
+    def calculate_metric(self, metric_name):
+        raise Exception("not implemented")
+
+
+class MyMetricsCalculator(MetricsCalculator):
     def __init__(self, network: net.Network, routers: list[routing.Router]):
         self.network = network
         self.routers = routers
         self.graph = to_graph(self.network)
+
+    def calculate_metric(self, name) -> float:
+        if name == "transmissions_per_node":
+            return self.transmissions_per_node()
+        if name == "routability_rate":
+            return self.routability_rate()
+        if name == "efficiency":
+            return self.efficiency()
+        raise Exception(f"metric not supported: {name}")
 
     def route_cost(self, source: NodeId, route: Route) -> Cost:
         route_cost = 0
@@ -92,17 +106,16 @@ class Candidate:
             self.router_factory.create_router(adapter, node_id)
             for node_id, adapter in enumerate(self.network.adapters)
         ]
-        self.metrics_calculator = MetricsCalculator(self.network, self.routers)
+        self.metrics_calculator: MetricsCalculator = MyMetricsCalculator(self.network, self.routers)
 
     def run_step(self):
         for router in self.routers:
             router.tick()
 
-    def scrape(self):
+    def scrape(self, metrics: list[str]):
         return {
-            "transmissions_per_node": self.metrics_calculator.transmissions_per_node(),
-            "routability_rate": self.metrics_calculator.routability_rate(),
-            "efficiency": self.metrics_calculator.efficiency(),
+            metric_name: self.metrics_calculator.calculate_metric(metric_name)
+            for metric_name in metrics
         }
 
 
@@ -126,19 +139,19 @@ def _create_strategy(strategy_config):
 
 class Experiment:
     def __init__(self, config, sample_emitter):
-        self.config = config["measurement"]
+        self.metrics: list[str] = config["metrics"]
         self.emit_sample = sample_emitter
         self.candidates: dict[str, Candidate] = {
             name: _create_candidate(candidate_config)
             for name, candidate_config in config["candidates"].items()
         }
+        self.steps: int = config["measurement"]["steps"]
+        samples = config["measurement"]["samples"]
+        self.scrape_interval: int = self.steps // samples
 
     def run(self):
-        steps = self.config["steps"]
-        samples = self.config["samples"]
-        scrape_interval = steps // samples
-        for step in range(steps):
-            if step % scrape_interval == 0:
+        for step in range(self.steps):
+            if step % self.scrape_interval == 0:
                 sample = self.scrape()
                 self.emit_sample(sample)
             self.run_step()
@@ -152,7 +165,7 @@ class Experiment:
     def scrape(self):
         return {
             "candidates": {
-                name: candidate.scrape()
+                name: candidate.scrape(self.metrics)
                 for name, candidate in self.candidates.items()
             },
         }
