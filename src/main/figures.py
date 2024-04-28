@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import csv
 
 _SCRIPT_TEMPLATE = """
 set xlabel '{x_label}';
@@ -33,16 +34,6 @@ def _gnuplot_escape(label: str) -> str:
     return label.replace("_", "\\_")
 
 
-def _data_format_sample(sample, figure: Figure) -> str:
-    line = "\t".join(
-        [
-            f"{candidate_sample[figure.x_metric]}\t{candidate_sample[figure.y_metric]}"
-            for name, candidate_sample in sample["candidates"].items()
-        ]
-    )
-    return f"{line}\n"
-
-
 class FigureMaker:
     def __init__(self, config, candidates: list[str], data_file_location):
         self.figures = [
@@ -71,9 +62,16 @@ class FigureMaker:
 
     def _write_data(self, figure: Figure):
         with open(self.data_file_location, 'w') as data_file:
+            writer = csv.writer(
+                data_file,
+                delimiter="\t",
+            )
             for sample in self.samples:
-                formatted_sample = _data_format_sample(sample, figure)
-                data_file.write(f"{formatted_sample}")
+                xy_pairs = [
+                    [candidate_sample[figure.x_metric], candidate_sample[figure.y_metric]]
+                    for candidate_sample in sample["candidates"].values()
+                ]
+                writer.writerow(sum(xy_pairs, []))
 
     def _generate_script(self, figure: Figure) -> str:
         plots = [

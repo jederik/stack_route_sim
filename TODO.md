@@ -1,6 +1,5 @@
 - push to GitHub
 - factor out gnuplot script generation
-- factor out data file formatting
 - implement and test actual forwarding
 - separate router and store
 - optimised router: incremental Dijkstra
