@@ -2,8 +2,10 @@ import subprocess
 import sys
 
 _SCRIPT_TEMPLATE = """
-plot {plots}
-""".strip()
+set xlabel '{x_label}';
+set ylabel '{y_label}';
+plot {plots};
+"""
 
 _PLOT_TEMPLATE = """
 '{data_file}' using {x_index}:{y_index} with lines title '{label}'
@@ -11,17 +13,19 @@ _PLOT_TEMPLATE = """
 
 
 class Figure:
-    def __init__(self, x_metric: str, y_metric: str):
+    def __init__(self, x_metric: str, y_metric: str, x_label: str, y_label: str):
+        self.y_label = y_label
+        self.x_label = x_label
         self.x_metric = x_metric
         self.y_metric = y_metric
-
-    pass
 
 
 def _create_figure(config) -> Figure:
     return Figure(
         x_metric=config["x"]["metric"],
         y_metric=config["y"]["metric"],
+        x_label=config["x"]["label"],
+        y_label=config["y"]["label"],
     )
 
 
@@ -41,7 +45,7 @@ class FigureMaker:
     def make_figures(self):
         for figure in self.figures:
             self._write_data(figure)
-            script = self._generate_script()
+            script = self._generate_script(figure)
             print(script, file=sys.stderr)
             try:
                 subprocess.check_output(
@@ -59,7 +63,7 @@ class FigureMaker:
         with open(self.data_file_location, 'r') as data_file:
             print(data_file.read())
 
-    def _generate_script(self) -> str:
+    def _generate_script(self, figure: Figure) -> str:
         plots = [
             _PLOT_TEMPLATE.format(
                 data_file=self.data_file_location,
@@ -69,7 +73,7 @@ class FigureMaker:
             )
             for index, candidate_name in enumerate(self.candidates)
         ]
-        return _SCRIPT_TEMPLATE.format(plots=", ".join(plots))
+        return _SCRIPT_TEMPLATE.format(plots=", ".join(plots), x_label=figure.x_label, y_label=figure.y_label)
 
     def _format_sample(self, sample, figure: Figure) -> str:
         line = "\t".join(
