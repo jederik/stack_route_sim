@@ -2,8 +2,16 @@ measurement:
   steps: 300
   samples: 10
 metrics:
-  - "transmissions_per_node"
-  - "efficiency"
+  - transmissions_per_node
+  - efficiency
+  - routability_rate
+figure:
+  x:
+    metric: transmissions_per_node
+    label: "message transmissions per node"
+  y:
+    metric: routability_rate
+    label: "routability rate"
 candidates:
   shortest:
     network:

@@ -1,4 +1,5 @@
 import random
+from typing import Callable, Any
 
 import graphs
 import net
@@ -138,7 +139,7 @@ def _create_strategy(strategy_config):
 
 
 class Experiment:
-    def __init__(self, config, sample_emitter):
+    def __init__(self, config, sample_emitter: Callable[[Any], None]):
         self.metrics: list[str] = config["metrics"]
         self.emit_sample = sample_emitter
         self.candidates: dict[str, Candidate] = {

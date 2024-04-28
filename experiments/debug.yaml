@@ -2,8 +2,15 @@ measurement:
   steps: 30
   samples: 10
 metrics:
-  - "transmissions_per_node"
-  - "efficiency"
+  - transmissions_per_node
+  - efficiency
+figure:
+  x:
+    label: "message transmissions per node"
+    metric: transmissions_per_node
+  y:
+    metric: efficiency
+    label: "routing efficiency"
 candidates:
   random:
     network:

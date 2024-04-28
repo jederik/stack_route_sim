@@ -1,15 +1,11 @@
 import os
+import tempfile
+
 import click
-import json
 import yaml
-import sys
 
 import experiments
-
-
-def dump_sample(sample):
-    json.dump(sample, fp=sys.stdout, indent=2)
-    print()
+import figures
 
 
 def read_config(path):
@@ -20,15 +16,22 @@ def read_config(path):
 @click.command()
 @click.option(
     "--config",
-    default=os.getenv("CONFIG", "~/config.yaml"),
-    help="location of the experiment config YAML"
+    default=os.getenv("CONFIG", "./config.yaml"),
+    help="location of the experiment config YAML",
 )
 def run(config: str):
+    main_config = read_config(config)
+    figure_maker = figures.FigureMaker(
+        config=main_config["figure"],
+        candidates=main_config["candidates"].keys(),
+        data_file_location=tempfile.mktemp(),
+    )
     experiment = experiments.Experiment(
-        config=read_config(config),
-        sample_emitter=dump_sample,
+        config=main_config,
+        sample_emitter=figure_maker.add_sample,
     )
     experiment.run()
+    figure_maker.make_figures()
 
 
 if __name__ == '__main__':
