@@ -22,7 +22,7 @@ def read_config(path):
 def run(config: str):
     main_config = read_config(config)
     figure_maker = figures.FigureMaker(
-        config=main_config["figure"],
+        config=main_config["figures"],
         candidates=main_config["candidates"].keys(),
         data_file_location=tempfile.mktemp(),
     )

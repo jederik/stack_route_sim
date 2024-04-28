@@ -1,13 +1,19 @@
 measurement:
   steps: 300
   samples: 10
-figure:
-  x:
-    metric: transmissions_per_node
-    label: "message transmissions per node"
-  y:
-    metric: routability_rate
-    label: "routability rate"
+figures:
+  - x:
+      label: "message transmissions per node"
+      metric: transmissions_per_node
+    y:
+      metric: routability_rate
+      label: "routability rate"
+  - x:
+      label: "message transmissions per node"
+      metric: transmissions_per_node
+    y:
+      metric: efficiency
+      label: "routing efficiency"
 candidates:
   shortest:
     network:

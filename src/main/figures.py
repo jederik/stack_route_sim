@@ -3,17 +3,34 @@ import sys
 
 _SCRIPT_TEMPLATE = """
 plot {plots}
-"""
+""".strip()
 
 _PLOT_TEMPLATE = """
 '{data_file}' using {x_index}:{y_index} with lines title '{label}'
-"""
+""".strip()
+
+
+class Figure:
+    def __init__(self, x_metric: str, y_metric: str):
+        self.x_metric = x_metric
+        self.y_metric = y_metric
+
+    pass
+
+
+def _create_figure(config) -> Figure:
+    return Figure(
+        x_metric=config["x"]["metric"],
+        y_metric=config["y"]["metric"],
+    )
 
 
 class FigureMaker:
     def __init__(self, config, candidates: list[str], data_file_location):
-        self.x_metric = config["x"]["metric"]
-        self.y_metric = config["y"]["metric"]
+        self.figures = [
+            _create_figure(figure_config)
+            for figure_config in config
+        ]
         self.candidates = candidates
         self.data_file_location = data_file_location
         self.samples = []
@@ -22,21 +39,23 @@ class FigureMaker:
         self.samples.append(sample)
 
     def make_figures(self):
-        self._write_data()
-        script = self._generate_script()
-        print(script, file=sys.stderr)
-        try:
-            subprocess.check_output(
-                ["gnuplot", "-p", "-e", script],
-            )
-        except subprocess.CalledProcessError as e:
-            print(e.output, file=sys.stderr)
-            raise Exception("error while running gnuplot")
+        for figure in self.figures:
+            self._write_data(figure)
+            script = self._generate_script()
+            print(script, file=sys.stderr)
+            try:
+                subprocess.check_output(
+                    ["gnuplot", "-p", "-e", script],
+                )
+            except subprocess.CalledProcessError as e:
+                print(e.output, file=sys.stderr)
+                raise Exception("error while running gnuplot")
 
-    def _write_data(self):
+    def _write_data(self, figure: Figure):
         with open(self.data_file_location, 'w') as data_file:
             for sample in self.samples:
-                data_file.write(f"{self._format_sample(sample)}")
+                formatted_sample = self._format_sample(sample, figure)
+                data_file.write(f"{formatted_sample}")
         with open(self.data_file_location, 'r') as data_file:
             print(data_file.read())
 
@@ -52,14 +71,18 @@ class FigureMaker:
         ]
         return _SCRIPT_TEMPLATE.format(plots=", ".join(plots))
 
-    def _format_sample(self, sample) -> str:
+    def _format_sample(self, sample, figure: Figure) -> str:
         line = "\t".join(
             [
-                f"{candidate_sample[self.x_metric]}\t{candidate_sample[self.y_metric]}"
+                f"{candidate_sample[figure.x_metric]}\t{candidate_sample[figure.y_metric]}"
                 for name, candidate_sample in sample["candidates"].items()
             ]
         )
         return f"{line}\n"
 
     def required_metrics(self) -> list[str]:
-        return [self.x_metric, self.y_metric]
+        metrics = set()
+        for figure in self.figures:
+            metrics.add(figure.x_metric)
+            metrics.add(figure.y_metric)
+        return list(metrics)
