@@ -26,9 +26,11 @@ def run(config: str):
         candidates=main_config["candidates"].keys(),
         data_file_location=tempfile.mktemp(),
     )
+    required_metrics = figure_maker.required_metrics()
     experiment = experiments.Experiment(
         config=main_config,
         sample_emitter=figure_maker.add_sample,
+        metrics=required_metrics,
     )
     experiment.run()
     figure_maker.make_figures()

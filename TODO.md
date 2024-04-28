@@ -1,8 +1,7 @@
-- determine required metrics automatically
+- multiple figures
+- push to GitHub
 - factor out gnuplot script generation
 - factor out data file formatting
-- multiple figures
 - implement and test actual forwarding
 - separate router and store
 - make optimised router more efficient
-- find out why optimisation doesn't improve routing efficiency

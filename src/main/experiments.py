@@ -139,8 +139,8 @@ def _create_strategy(strategy_config):
 
 
 class Experiment:
-    def __init__(self, config, sample_emitter: Callable[[Any], None]):
-        self.metrics: list[str] = config["metrics"]
+    def __init__(self, config, sample_emitter: Callable[[Any], None], metrics: list[str]):
+        self.metrics = metrics
         self.emit_sample = sample_emitter
         self.candidates: dict[str, Candidate] = {
             name: _create_candidate(candidate_config)

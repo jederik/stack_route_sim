@@ -60,3 +60,6 @@ class FigureMaker:
             ]
         )
         return f"{line}\n"
+
+    def required_metrics(self) -> list[str]:
+        return [self.x_metric, self.y_metric]
