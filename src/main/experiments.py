@@ -53,6 +53,8 @@ class MyMetricsCalculator(MetricsCalculator):
             return self.routability_rate()
         if name == "efficiency":
             return self.efficiency()
+        if name == "efficient_routability":
+            return self.routability_rate() * self.efficiency()
         raise Exception(f"metric not supported: {name}")
 
     def route_cost(self, source: NodeId, route: Route) -> Cost:

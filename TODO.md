@@ -1,4 +1,3 @@
-- metric: efficient_routability (routability_rate * efficiency)
 - push to GitHub
 - factor out gnuplot script generation
 - factor out data file formatting

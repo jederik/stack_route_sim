@@ -14,6 +14,12 @@ figures:
     y:
       metric: efficiency
       label: "routing efficiency"
+  - x:
+      label: "message transmissions per node"
+      metric: transmissions_per_node
+    y:
+      metric: efficient_routability
+      label: "efficient routability"
 candidates:
   random:
     network:
