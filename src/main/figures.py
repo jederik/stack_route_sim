@@ -14,8 +14,8 @@ _PLOT_TEMPLATE = """
 
 class Figure:
     def __init__(self, x_metric: str, y_metric: str, x_label: str, y_label: str):
-        self.y_label = y_label
         self.x_label = x_label
+        self.y_label = y_label
         self.x_metric = x_metric
         self.y_metric = y_metric
 
@@ -24,9 +24,23 @@ def _create_figure(config) -> Figure:
     return Figure(
         x_metric=config["x"]["metric"],
         y_metric=config["y"]["metric"],
-        x_label=config["x"]["label"],
-        y_label=config["y"]["label"],
+        x_label=config["x"]["label"] if "label" in config["x"] else config["x"]["metric"],
+        y_label=config["y"]["label"] if "label" in config["y"] else config["y"]["metric"],
     )
+
+
+def _gnuplot_escape(label: str) -> str:
+    return label.replace("_", "\\_")
+
+
+def _data_format_sample(sample, figure: Figure) -> str:
+    line = "\t".join(
+        [
+            f"{candidate_sample[figure.x_metric]}\t{candidate_sample[figure.y_metric]}"
+            for name, candidate_sample in sample["candidates"].items()
+        ]
+    )
+    return f"{line}\n"
 
 
 class FigureMaker:
@@ -58,10 +72,8 @@ class FigureMaker:
     def _write_data(self, figure: Figure):
         with open(self.data_file_location, 'w') as data_file:
             for sample in self.samples:
-                formatted_sample = self._format_sample(sample, figure)
+                formatted_sample = _data_format_sample(sample, figure)
                 data_file.write(f"{formatted_sample}")
-        with open(self.data_file_location, 'r') as data_file:
-            print(data_file.read())
 
     def _generate_script(self, figure: Figure) -> str:
         plots = [
@@ -73,16 +85,11 @@ class FigureMaker:
             )
             for index, candidate_name in enumerate(self.candidates)
         ]
-        return _SCRIPT_TEMPLATE.format(plots=", ".join(plots), x_label=figure.x_label, y_label=figure.y_label)
-
-    def _format_sample(self, sample, figure: Figure) -> str:
-        line = "\t".join(
-            [
-                f"{candidate_sample[figure.x_metric]}\t{candidate_sample[figure.y_metric]}"
-                for name, candidate_sample in sample["candidates"].items()
-            ]
+        return _SCRIPT_TEMPLATE.format(
+            plots=", ".join(plots),
+            x_label=_gnuplot_escape(figure.x_label),
+            y_label=_gnuplot_escape(figure.y_label),
         )
-        return f"{line}\n"
 
     def required_metrics(self) -> list[str]:
         metrics = set()

@@ -3,4 +3,4 @@
 - factor out data file formatting
 - implement and test actual forwarding
 - separate router and store
-- make optimised router more efficient
+- optimised router: incremental Dijkstra
