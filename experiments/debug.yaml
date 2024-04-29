@@ -36,3 +36,15 @@ candidates:
       strategy:  optimised
       propagation:
         strategy: shortest_route
+  alternating:
+    network:
+      node_count: 100
+      density: .1
+    routing:
+      strategy:  optimised
+      propagation:
+        strategy: alternate
+        shortest:
+        random:
+          cutoff_rate: .1
+        random_ratio: 0.5

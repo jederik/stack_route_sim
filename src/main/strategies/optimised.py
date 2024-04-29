@@ -287,6 +287,10 @@ class RandomRoutePropagator(Propagator):
         edged_route = _pick_random(store.nodes[source].edges[successor].priced_routes, self.rnd)
         return target, edged_route.path + route_tail, edged_route.cost + tail_cost
 
+    @classmethod
+    def create(cls, config, rnd: random.Random):
+        return RandomRoutePropagator(config["cutoff_rate"], rnd)
+
 
 class ShortestRoutePropagator(Propagator):
     def __init__(self, rnd: random.Random):
@@ -298,14 +302,46 @@ class ShortestRoutePropagator(Propagator):
         priced_route = router.store.shortest_route(target)
         return port, target, priced_route.path, priced_route.cost
 
+    @classmethod
+    def create(cls, config, rnd: random.Random):
+        return ShortestRoutePropagator(
+            rnd=rnd,
+        )
 
-def _create_propagator(propagation_config, rnd: random.Random) -> Propagator:
-    name = propagation_config["strategy"]
-    if name == "random_route":
-        return RandomRoutePropagator(propagation_config["cutoff_rate"], rnd)
-    if name == "shortest_route":
-        return ShortestRoutePropagator(rnd)
-    raise Exception(f"unknown propagation strategy: {name}")
+
+class AlternativeRoutePropagator(Propagator):
+    def __init__(self, rnd: random.Random, random_propagator: RandomRoutePropagator, random_ratio: float,
+                 shortest_propagator: ShortestRoutePropagator):
+        self.shortest_propagator = shortest_propagator
+        self.random_propagator = random_propagator
+        self.rnd = rnd
+        self.random_ratio = random_ratio
+
+    def pick(self, router: 'OptimisedRouter') -> tuple[PortNumber, NodeId, Route, Cost]:
+        if self.random_ratio > self.rnd.random():
+            return self.random_propagator.pick(router)
+        else:
+            return self.shortest_propagator.pick(router)
+
+    @classmethod
+    def create(cls, config, rnd: random.Random):
+        return AlternativeRoutePropagator(
+            random_propagator=RandomRoutePropagator.create(config["random"], rnd),
+            rnd=rnd,
+            random_ratio=config["random_ratio"],
+            shortest_propagator=ShortestRoutePropagator.create(config["shortest"], rnd)
+        )
+
+
+def _create_propagator(config, rnd: random.Random) -> Propagator:
+    strategy = config["strategy"]
+    if strategy == "random_route":
+        return RandomRoutePropagator.create(config, rnd)
+    if strategy == "shortest_route":
+        return ShortestRoutePropagator.create(config, rnd)
+    if strategy == "alternate":
+        return AlternativeRoutePropagator.create(config, rnd)
+    raise Exception(f"unknown propagation strategy: {strategy}")
 
 
 class OptimisedRouterFactory(RouterFactory):
