@@ -1,4 +1,5 @@
 - push to GitHub
+- test hybrid propagation strategy
 - factor out gnuplot script generation
 - implement and test actual forwarding
 - separate router and store
