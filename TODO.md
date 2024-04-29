@@ -1,4 +1,3 @@
-- store figures (via CLI option)
 - measure route insertion time
 - write README.md
 - factor out gnuplot script generation

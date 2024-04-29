@@ -1,11 +1,19 @@
+import csv
+import pathlib
 import subprocess
 import sys
-import csv
+from typing import Optional
 
 _SCRIPT_TEMPLATE = """
 set xlabel '{x_label}';
 set ylabel '{y_label}';
 plot {plots};
+"""
+
+_FILE_OUTPUT_TEMPLATE = """
+set terminal png;
+set output '{output_file}';
+replot;
 """
 
 _PLOT_TEMPLATE = """
@@ -14,7 +22,8 @@ _PLOT_TEMPLATE = """
 
 
 class Figure:
-    def __init__(self, x_metric: str, y_metric: str, x_label: str, y_label: str):
+    def __init__(self, x_metric: str, y_metric: str, x_label: str, y_label: str, title: str):
+        self.title = title
         self.x_label = x_label
         self.y_label = y_label
         self.x_metric = x_metric
@@ -22,11 +31,17 @@ class Figure:
 
 
 def _create_figure(config) -> Figure:
+    x_metric = config["x"]["metric"]
+    y_metric = config["y"]["metric"]
+    x_label = config["x"]["label"] if "label" in config["x"] else x_metric
+    y_label = config["y"]["label"] if "label" in config["y"] else y_metric
+    title = config["title"] if "title" in config else y_label
     return Figure(
-        x_metric=config["x"]["metric"],
-        y_metric=config["y"]["metric"],
-        x_label=config["x"]["label"] if "label" in config["x"] else config["x"]["metric"],
-        y_label=config["y"]["label"] if "label" in config["y"] else config["y"]["metric"],
+        x_metric=x_metric,
+        y_metric=y_metric,
+        x_label=x_label,
+        y_label=y_label,
+        title=title,
     )
 
 
@@ -35,7 +50,8 @@ def _gnuplot_escape(label: str) -> str:
 
 
 class FigureMaker:
-    def __init__(self, config, candidates: list[str], data_file_location):
+    def __init__(self, config, candidates: list[str], data_file_location, target_folder: Optional[str]):
+        self.target_folder = target_folder
         self.figures = [
             _create_figure(figure_config)
             for figure_config in config
@@ -48,6 +64,7 @@ class FigureMaker:
         self.samples.append(sample)
 
     def make_figures(self):
+        pathlib.Path(self.target_folder).mkdir(parents=True, exist_ok=True)
         for figure in self.figures:
             self._write_data(figure)
             script = self._generate_script(figure)
@@ -83,11 +100,16 @@ class FigureMaker:
             )
             for index, candidate_name in enumerate(self.candidates)
         ]
-        return _SCRIPT_TEMPLATE.format(
+        script = _SCRIPT_TEMPLATE.format(
             plots=", ".join(plots),
             x_label=_gnuplot_escape(figure.x_label),
             y_label=_gnuplot_escape(figure.y_label),
         )
+        if self.target_folder:
+            script += _FILE_OUTPUT_TEMPLATE.format(
+                output_file = f"{self.target_folder}/{figure.title}.png"
+            )
+        return script
 
     def required_metrics(self) -> list[str]:
         metrics = set()

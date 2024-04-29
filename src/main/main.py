@@ -1,5 +1,6 @@
 import os
 import tempfile
+from datetime import datetime
 
 import click
 import yaml
@@ -19,12 +20,18 @@ def read_config(path):
     default=os.getenv("CONFIG", "./config.yaml"),
     help="location of the experiment config YAML",
 )
-def run(config: str):
+@click.option(
+    "--target",
+    default=os.getenv("TARGET", f"./results/{datetime.now().strftime('%Y-%m-%dT%H:%M:%S')}"),
+    help="directory in which figures should be stored",
+)
+def run(config: str, target: str):
     main_config = read_config(config)
     figure_maker = figures.FigureMaker(
         config=main_config["figures"],
         candidates=main_config["candidates"].keys(),
         data_file_location=tempfile.mktemp(),
+        target_folder=target,
     )
     required_metrics = figure_maker.required_metrics()
     experiment = experiments.Experiment(
