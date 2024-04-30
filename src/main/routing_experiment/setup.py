@@ -3,7 +3,6 @@ import random
 import experimentation
 import instrumentation
 from . import measurements, graphs, net, routing, strategies
-from measuring import MetricsCalculator
 from .routing import Route, RouterFactory
 from .net import NodeId, Cost
 
@@ -17,8 +16,7 @@ class RoutingCandidate(experimentation.Candidate):
             self.router_factory.create_router(adapter, node_id, tracker)
             for node_id, adapter in enumerate(self.network.adapters)
         ]
-        self.metrics_calculator: MetricsCalculator = GlobalMetricsCalculator(self.network, self.routers,
-                                                                             measurement_reader)
+        self.metrics_calculator = GlobalMetricsCalculator(self.network, self.routers, measurement_reader)
 
     def run_step(self):
         for router in self.routers:
@@ -55,12 +53,15 @@ def to_graph(network: net.Network) -> graphs.CostGraph:
     }
 
 
-class GlobalMetricsCalculator(MetricsCalculator):
+class GlobalMetricsCalculator:
     def __init__(self, network: net.Network, routers: list[routing.Router], reader: instrumentation.MeasurementReader):
-        super().__init__(reader)
+        self.reader = reader
+        self.scraped_measurements: set[str] = set()
         self.network = network
         self.routers = routers
         self.graph = to_graph(self.network)
+        self.scraped_measurements: set[str] = set()
+        self._last_measurement: dict[str, float] = {}
 
     def calculate_metric(self, name) -> float:
         if name == "transmissions_per_node":
@@ -130,6 +131,40 @@ class GlobalMetricsCalculator(MetricsCalculator):
 
     def propagated_route_length(self) -> float:
         return self.rate(measurements.RECEIVED_ROUTE_LENGTH, measurements.ROUTE_INSERTION_COUNT)
+
+    def reset(self) -> None:
+        for measurement in self.scraped_measurements:
+            self._reset_measurement(measurement)
+        self.scraped_measurements = set()
+
+    def _reset_measurement(self, name):
+        self._last_measurement[name] = self.reader.get_counter_value(name)
+
+    def scrape(self, metrics) -> dict[str, float]:
+        result = {
+            metric_name: self.calculate_metric(metric_name)
+            for metric_name in metrics
+        }
+        self.reset()
+        return result
+
+    def rate(self, sum_metric: str, count_metric: str) -> float:
+        sum_delta = self._get_measurement_delta(sum_metric)
+        count_delta = self._get_measurement_delta(count_metric)
+        if count_delta == 0:
+            return 0
+        return sum_delta / count_delta
+
+    def _get_measurement_delta(self, name) -> float:
+        old_value = float(0)
+        if name in self._last_measurement:
+            old_value = self._last_measurement[name]
+        new_value = self._get_measurement(name)
+        return new_value - old_value
+
+    def _get_measurement(self, name):
+        self.scraped_measurements.add(name)
+        return self.reader.get_counter_value(name)
 
 
 def _create_strategy(strategy_config):

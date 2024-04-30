@@ -1,0 +1,2 @@
+MetricName = str
+MetricValue = float

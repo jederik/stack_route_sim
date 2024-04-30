@@ -1,5 +1,6 @@
 import tempfile
 
+from .metering import MetricName, MetricValue
 from . import figures
 
 
@@ -7,7 +8,7 @@ class Candidate:
     def run_step(self):
         raise Exception("not implemented")
 
-    def scrape_metrics(self, metrics: list[str]) -> dict[str, float]:
+    def scrape_metrics(self, metrics: list[MetricName]) -> dict[MetricName, MetricValue]:
         raise Exception("not implemented")
 
 
