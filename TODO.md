@@ -1,4 +1,5 @@
-- measure route insertion time
+- measure received route length
+- group figures by domain
 - write README.md
 - factor out gnuplot script generation
 - implement and test actual forwarding

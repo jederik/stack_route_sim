@@ -1,8 +1,9 @@
+import instrumentation
 import net
 from routes import NodeId
 from routing import Router
 
 
 class RouterFactory:
-    def create_router(self, adapter: net.Adapter, node_id: NodeId) -> Router:
+    def create_router(self, adapter: net.Adapter, node_id: NodeId, tracker: instrumentation.Tracker) -> Router:
         raise Exception("not implemented")

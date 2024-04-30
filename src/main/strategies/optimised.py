@@ -2,12 +2,15 @@ import bisect
 import math
 import random
 import sys
+import time
 from typing import Optional, TypeVar
 
+import measurements
 import net
 from routes import NodeId, Route, PortNumber, Cost
 from routing import Router
 from strategy import RouterFactory
+import instrumentation
 
 
 class PropagationMessage:
@@ -72,8 +75,21 @@ def _pick_random(items: list[T], rnd: random.Random) -> T:
     return items[int(rnd.random() * len(items))]
 
 
+class _Measurements:
+    def __init__(self, tracker: instrumentation.Tracker):
+        self.route_insertion_count = tracker.get_counter(measurements.ROUTE_INSERTION_COUNT)
+        self.route_update_seconds_sum = tracker.get_counter(measurements.ROUTE_UPDATE_SECONDS_SUM)
+        self.distance_update_seconds_sum = tracker.get_counter(measurements.DISTANCE_UPDATE_SECONDS_SUM)
+
+
 class RouteStore:
-    def __init__(self, node_id: NodeId, rnd: random.Random = random.Random()):
+    def __init__(
+            self,
+            node_id: NodeId,
+            rnd: random.Random = random.Random(),
+            tracker: Optional[instrumentation.Tracker] = None,
+    ):
+        self.measurements = _Measurements(tracker)
         self.rnd = rnd
         self.node_id = node_id
         self.nodes: dict[NodeId, _Node] = {
@@ -184,8 +200,18 @@ class RouteStore:
         return [target]
 
     def insert(self, target: NodeId, route: Route, cost: Cost):
+        self.measurements.route_insertion_count.increase(1)
+
+        # TODO delegate time measurement to timer helper class
+        start = time.time()
         distance_modified_nodes = self._store_route(self.node_id, target, route, cost)
+        end = time.time()
+        self.measurements.route_update_seconds_sum.increase(end - start)
+
+        start = time.time()
         self._update_distances(distance_modified_nodes)
+        end = time.time()
+        self.measurements.distance_update_seconds_sum.increase(end - start)
 
     def _get_node(self, node_id: NodeId):
         if node_id not in self.nodes:
@@ -229,10 +255,11 @@ class OptimisedRouter(Router, net.Adapter.Handler):
             adapter: net.Adapter,
             node_id: NodeId,
             propagation_strategy: Propagator,
-            rnd: random.Random
+            rnd: random.Random,
+            tracker: instrumentation.Tracker,
     ):
         self.adapter = adapter
-        self.store = RouteStore(node_id, rnd)
+        self.store = RouteStore(node_id, rnd, tracker)
         self._propagation_strategy = propagation_strategy
         adapter.register_handler(self)
 
@@ -349,10 +376,11 @@ class OptimisedRouterFactory(RouterFactory):
         self.rnd = rnd
         self.propagator = _create_propagator(routing_config["propagation"], rnd)
 
-    def create_router(self, adapter: net.Adapter, node_id: NodeId) -> Router:
+    def create_router(self, adapter: net.Adapter, node_id: NodeId, tracker: instrumentation.Tracker) -> Router:
         return OptimisedRouter(
             adapter,
             node_id,
             propagation_strategy=self.propagator,
             rnd=self.rnd,
+            tracker=tracker,
         )

@@ -7,6 +7,7 @@ import yaml
 
 import experiments
 import figures
+import instrumentation
 
 
 def read_config(path):
@@ -38,6 +39,7 @@ def run(config: str, target: str):
         config=main_config,
         sample_emitter=figure_maker.add_sample,
         metrics=required_metrics,
+        tracker_factory_method=instrumentation.Tracker,
     )
     experiment.run()
     figure_maker.make_figures()

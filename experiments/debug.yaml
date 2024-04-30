@@ -5,19 +5,11 @@ figures:
   - x:
       metric: transmissions_per_node
     y:
-      metric: routability_rate
-      label: "routability rate"
+      metric: route_insertion_duration
   - x:
       metric: transmissions_per_node
-      label: "message transmissions per node"
     y:
-      metric: efficiency
-      label: "routing efficiency"
-  - x:
-      metric: transmissions_per_node
-      label: "message transmissions per node"
-    y:
-      metric: efficient_routability
+      metric: distance_update_duration
 candidates:
   random:
     network:

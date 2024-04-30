@@ -2,6 +2,8 @@ import random
 from typing import Callable, Any
 
 import graphs
+import instrumentation
+import measurements
 import net
 import routing
 import strategies
@@ -36,12 +38,52 @@ def to_graph(network: net.Network) -> graphs.CostGraph:
 
 
 class MetricsCalculator:
+    def __init__(self, tracker: instrumentation.Tracker):
+        self.scraped_measurements: set[str] = set()
+        self.tracker = tracker
+        self._last_measurement: dict[str, float] = {}
+
     def calculate_metric(self, metric_name):
         raise Exception("not implemented")
 
+    def reset(self) -> None:
+        for measurement in self.scraped_measurements:
+            self._reset_measurement(measurement)
+        self.scraped_measurements = set()
+
+    def _reset_measurement(self, name):
+        self._last_measurement[name] = self.tracker.get_counter_value(name)
+
+    def scrape(self, metrics) -> dict[str, float]:
+        result = {
+            metric_name: self.calculate_metric(metric_name)
+            for metric_name in metrics
+        }
+        self.reset()
+        return result
+
+    def rate(self, sum_metric: str, count_metric: str) -> float:
+        sum_delta = self._get_measurement_delta(sum_metric)
+        count_delta = self._get_measurement_delta(count_metric)
+        if count_delta == 0:
+            return 0
+        return sum_delta / count_delta
+
+    def _get_measurement_delta(self, name) -> float:
+        old_value = float(0)
+        if name in self._last_measurement:
+            old_value = self._last_measurement[name]
+        new_value = self._get_measurement(name)
+        return new_value - old_value
+
+    def _get_measurement(self, name):
+        self.scraped_measurements.add(name)
+        return self.tracker.get_counter_value(name)
+
 
 class MyMetricsCalculator(MetricsCalculator):
-    def __init__(self, network: net.Network, routers: list[routing.Router]):
+    def __init__(self, network: net.Network, routers: list[routing.Router], tracker: instrumentation.Tracker):
+        super().__init__(tracker)
         self.network = network
         self.routers = routers
         self.graph = to_graph(self.network)
@@ -55,6 +97,10 @@ class MyMetricsCalculator(MetricsCalculator):
             return self.efficiency()
         if name == "efficient_routability":
             return self.routability_rate() * self.efficiency()
+        if name == "route_insertion_duration":
+            return self.route_update_duration()
+        if name == "distance_update_duration":
+            return self.distance_update_time()
         raise Exception(f"metric not supported: {name}")
 
     def route_cost(self, source: NodeId, route: Route) -> Cost:
@@ -100,32 +146,36 @@ class MyMetricsCalculator(MetricsCalculator):
             return 1
         return node_distances / route_lengths
 
+    def route_update_duration(self) -> float:
+        return self.rate(measurements.ROUTE_UPDATE_SECONDS_SUM, measurements.ROUTE_INSERTION_COUNT)
+
+    def distance_update_time(self) -> float:
+        return self.rate(measurements.DISTANCE_UPDATE_SECONDS_SUM, measurements.ROUTE_INSERTION_COUNT)
+
 
 class Candidate:
-    def __init__(self, config, router_factory: RouterFactory):
+    def __init__(self, config, router_factory: RouterFactory, tracker: instrumentation.Tracker):
         self.network: net.Network = generate_network(config["network"])
         self.router_factory = router_factory
         self.routers: list[routing.Router] = [
-            self.router_factory.create_router(adapter, node_id)
+            self.router_factory.create_router(adapter, node_id, tracker)
             for node_id, adapter in enumerate(self.network.adapters)
         ]
-        self.metrics_calculator: MetricsCalculator = MyMetricsCalculator(self.network, self.routers)
+        self.metrics_calculator: MetricsCalculator = MyMetricsCalculator(self.network, self.routers, tracker)
 
     def run_step(self):
         for router in self.routers:
             router.tick()
 
-    def scrape(self, metrics: list[str]):
-        return {
-            metric_name: self.metrics_calculator.calculate_metric(metric_name)
-            for metric_name in metrics
-        }
+    def scrape(self, metrics: list[str]) -> dict[str, float]:
+        return self.metrics_calculator.scrape(metrics)
 
 
-def _create_candidate(config):
+def _create_candidate(config, tracker_factory_method: Callable[[], instrumentation.Tracker]):
     return Candidate(
         config=config,
         router_factory=_create_strategy(config["routing"]),
+        tracker=tracker_factory_method(),
     )
 
 
@@ -141,11 +191,17 @@ def _create_strategy(strategy_config):
 
 
 class Experiment:
-    def __init__(self, config, sample_emitter: Callable[[Any], None], metrics: list[str]):
+    def __init__(
+            self,
+            config,
+            sample_emitter: Callable[[Any], None],
+            metrics: list[str],
+            tracker_factory_method: Callable[[], instrumentation.Tracker],
+    ):
         self.metrics = metrics
         self.emit_sample = sample_emitter
         self.candidates: dict[str, Candidate] = {
-            name: _create_candidate(candidate_config)
+            name: _create_candidate(candidate_config, tracker_factory_method)
             for name, candidate_config in config["candidates"].items()
         }
         self.steps: int = config["measurement"]["steps"]
