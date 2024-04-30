@@ -160,6 +160,14 @@ class GlobalMetricsCalculator(MetricsCalculator):
 
 
 class Candidate:
+    def run_step(self):
+        raise Exception("not implemented")
+
+    def scrape(self, metrics: list[str]) -> dict[str, float]:
+        raise Exception("not implemented")
+
+
+class RoutingCandidate(Candidate):
     def __init__(self, config, router_factory: RouterFactory, tracker: instrumentation.Tracker, rnd: random.Random):
         self.network: net.Network = generate_network(config["network"], rnd, tracker)
         self.router_factory = router_factory
@@ -177,8 +185,8 @@ class Candidate:
         return self.metrics_calculator.scrape(metrics)
 
 
-def _create_candidate(config, tracker_factory_method: Callable[[], instrumentation.Tracker], rnd: random.Random):
-    return Candidate(
+def _create_candidate(config, tracker_factory_method: Callable[[], instrumentation.Tracker], rnd: random.Random) -> Candidate:
+    return RoutingCandidate(
         config=config,
         router_factory=_create_strategy(config["routing"]),
         tracker=tracker_factory_method(),
@@ -209,7 +217,11 @@ class Experiment:
         self.metrics = metrics
         self.emit_sample = sample_emitter
         self.candidates: dict[str, Candidate] = {
-            name: _create_candidate(candidate_config, tracker_factory_method, rnd)
+            name: _create_candidate(
+                config=candidate_config,
+                tracker_factory_method=tracker_factory_method,
+                rnd=rnd
+            )
             for name, candidate_config in config["candidates"].items()
         }
         self.steps: int = config["measurement"]["steps"]
