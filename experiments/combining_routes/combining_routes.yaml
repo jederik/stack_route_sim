@@ -1,7 +1,11 @@
 measurement:
-  steps: 300
+  steps: 3000
   samples: 10
 figures:
+  - x:
+      metric: transmissions_per_node
+    y:
+      metric: propagated_route_length
   - x:
       metric: transmissions_per_node
     y:

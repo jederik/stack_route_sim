@@ -1,6 +1,6 @@
-- measure received route length
 - group figures by domain
 - write README.md
+- implement incremental SSSP
 - factor out gnuplot script generation
 - implement and test actual forwarding
 - separate router and store

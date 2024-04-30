@@ -80,6 +80,7 @@ class _Measurements:
         self.route_insertion_count = tracker.get_counter(measurements.ROUTE_INSERTION_COUNT)
         self.route_update_seconds_sum = tracker.get_counter(measurements.ROUTE_UPDATE_SECONDS_SUM)
         self.distance_update_seconds_sum = tracker.get_counter(measurements.DISTANCE_UPDATE_SECONDS_SUM)
+        self.received_route_length = tracker.get_counter(measurements.RECEIVED_ROUTE_LENGTH)
 
 
 class RouteStore:
@@ -200,6 +201,7 @@ class RouteStore:
         return [target]
 
     def insert(self, target: NodeId, route: Route, cost: Cost):
+        self.measurements.received_route_length.increase(len(route))
         self.measurements.route_insertion_count.increase(1)
 
         # TODO delegate time measurement to timer helper class

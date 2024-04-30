@@ -101,6 +101,8 @@ class MyMetricsCalculator(MetricsCalculator):
             return self.route_update_duration()
         if name == "distance_update_duration":
             return self.distance_update_time()
+        if name == "propagated_route_length":
+            return self.propagated_route_length()
         raise Exception(f"metric not supported: {name}")
 
     def route_cost(self, source: NodeId, route: Route) -> Cost:
@@ -151,6 +153,9 @@ class MyMetricsCalculator(MetricsCalculator):
 
     def distance_update_time(self) -> float:
         return self.rate(measurements.DISTANCE_UPDATE_SECONDS_SUM, measurements.ROUTE_INSERTION_COUNT)
+
+    def propagated_route_length(self) -> float:
+        return self.rate(measurements.RECEIVED_ROUTE_LENGTH, measurements.ROUTE_INSERTION_COUNT)
 
 
 class Candidate:
