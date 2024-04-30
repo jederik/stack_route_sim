@@ -1,4 +1,6 @@
+import copy
 import time
+from collections import defaultdict
 
 
 class Counter:
@@ -19,40 +21,61 @@ class Timer(Counter):
 
 
 class Tracker:
-    def get_counter(self, name: str) -> Counter:
-        raise Exception("not implemented")
-
-    def get_timer(self, name) -> Timer:
-        raise Exception("not implemented")
-
-
-class MeasurementReader:
-    def get_counter_value(self, name):
-        raise Exception("not implemented")
-
-
-class _Implementation(Tracker, MeasurementReader):
-    def __init__(self):
-        self.measurements: dict[str, Counter] = {}
+    def __init__(self, counters: dict[str, Counter]):
+        self.counters = counters
 
     def get_counter(self, name: str) -> Counter:
-        if name not in self.measurements:
-            self.measurements[name] = Counter()
-        return self.measurements[name]
-
-    def get_counter_value(self, name):
-        return self.measurements[name].value
+        if name not in self.counters:
+            self.counters[name] = Counter()
+        return self.counters[name]
 
     def get_timer(self, name) -> Timer:
-        if name not in self.measurements:
-            self.measurements[name] = Timer()
-        counter = self.measurements[name]
+        if name not in self.counters:
+            self.counters[name] = Timer()
+        counter = self.counters[name]
         if isinstance(counter, Timer):
             timer: Timer = counter
             return timer
         raise Exception(f"there is already a non-timer counter registered under {name}")
 
 
+class Session:
+    def __init__(self, before: dict[str, float], after: dict[str, float]):
+        self.before = before
+        self.after = after
+
+    def get_counter_value(self, name):
+        raise Exception("not implemented")
+
+    def get(self, name) -> float:
+        return self.after[name]
+
+    def rate(self, sum_metric: str, count_metric: str) -> float:
+        sum_delta = self._get_measurement_delta(sum_metric)
+        count_delta = self._get_measurement_delta(count_metric)
+        if count_delta == 0:
+            return 0
+        return sum_delta / count_delta
+
+    def _get_measurement_delta(self, name: str) -> float:
+        return self.after[name] - self.before[name]
+
+
+class MeasurementReader:
+    def __init__(self, counters: dict[str, Counter]):
+        self.counters = counters
+        self.before: dict[str, float] = defaultdict(lambda: float(0))
+
+    def session(self) -> Session:
+        current = {
+            name: counter.value
+            for name, counter in self.counters.items()
+        }
+        before = copy.copy(self.before)
+        self.before = current
+        return Session(before, current)
+
+
 def setup() -> tuple[Tracker, MeasurementReader]:
-    instance = _Implementation()
-    return instance, instance
+    counters: dict[str, Counter] = {}
+    return Tracker(counters), MeasurementReader(counters)
