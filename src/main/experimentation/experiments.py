@@ -1,6 +1,6 @@
 import tempfile
 
-import figures
+from . import figures
 
 
 class Candidate:

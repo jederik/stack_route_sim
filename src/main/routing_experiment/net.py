@@ -2,7 +2,7 @@ import copy
 from typing import Optional
 
 import instrumentation
-import measurements
+from . import measurements
 
 NodeId = int
 PortNumber = int

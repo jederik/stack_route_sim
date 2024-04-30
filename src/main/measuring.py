@@ -7,7 +7,7 @@ class MetricsCalculator:
         self.tracker = tracker
         self._last_measurement: dict[str, float] = {}
 
-    def calculate_metric(self, metric_name):
+    def calculate_metric(self, metric_name: str):
         raise Exception("not implemented")
 
     def reset(self) -> None:

@@ -5,7 +5,7 @@ from datetime import datetime
 import click
 import yaml
 
-import experiments
+import experimentation
 import routing_experiment
 
 
@@ -32,7 +32,7 @@ def run(config: str, target: str):
 
 def run_experiment(config, target):
     rnd = random.Random()
-    experiment = experiments.ExperimentRunner(
+    experiment = experimentation.ExperimentRunner(
         config=config,
         experiment=routing_experiment.create_experiment(rnd, config),
         figure_folder=target,

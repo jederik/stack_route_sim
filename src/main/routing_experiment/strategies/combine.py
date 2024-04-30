@@ -3,9 +3,8 @@ from typing import Optional, TypeVar
 
 import net
 from net import NodeId, PortNumber, Cost
-from routing import Router, Route
+from routing import Router, Route, RouterFactory
 from strategies.optimised import PropagationMessage
-from strategy import RouterFactory
 
 
 class _Segment:

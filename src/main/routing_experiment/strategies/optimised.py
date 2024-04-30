@@ -5,11 +5,10 @@ import sys
 from typing import Optional, TypeVar
 
 import instrumentation
-import measurements
-import net
-from net import NodeId, PortNumber, Cost
-from routing import Router, Route
-from strategy import RouterFactory
+from .. import measurements
+from .. import net
+from ..net import NodeId, PortNumber, Cost
+from ..routing import Router, Route, RouterFactory
 
 
 class PropagationMessage:

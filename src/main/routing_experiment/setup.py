@@ -1,19 +1,14 @@
 import random
 
-import experiments
-import graphs
+import experimentation
 import instrumentation
-import measurements
-import net
-import routing
-import strategies
+from . import measurements, graphs, net, routing, strategies
 from measuring import MetricsCalculator
-from routing import Route
-from net import NodeId, Cost
-from strategy import RouterFactory
+from .routing import Route, RouterFactory
+from .net import NodeId, Cost
 
 
-class RoutingCandidate(experiments.Candidate):
+class RoutingCandidate(experimentation.Candidate):
     def __init__(self, config, router_factory: RouterFactory, tracker: instrumentation.Tracker, rnd: random.Random):
         self.network: net.Network = generate_network(config["network"], rnd, tracker)
         self.router_factory = router_factory
@@ -146,7 +141,7 @@ def _create_strategy(strategy_config):
     return constructor(strategy_config, random.Random())
 
 
-def _create_candidate(config, tracker: instrumentation.Tracker, rnd: random.Random) -> experiments.Candidate:
+def _create_candidate(config, tracker: instrumentation.Tracker, rnd: random.Random) -> experimentation.Candidate:
     return RoutingCandidate(
         config=config,
         router_factory=_create_strategy(config["routing"]),
@@ -155,8 +150,8 @@ def _create_candidate(config, tracker: instrumentation.Tracker, rnd: random.Rand
     )
 
 
-def create_experiment(rnd: random.Random, config) -> experiments.Experiment:
-    return experiments.Experiment(
+def create_experiment(rnd: random.Random, config) -> experimentation.Experiment:
+    return experimentation.Experiment(
         candidates={
             name: _create_candidate(
                 config=candidate_config,

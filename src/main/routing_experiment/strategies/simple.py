@@ -1,17 +1,16 @@
 import random
 from typing import Callable, Optional
 
-import net
-import routing
-from routing import Route
-from net import NodeId, PortNumber
-from strategy import RouterFactory
+import instrumentation
+from routing_experiment import net
+from routing_experiment.routing import Route, RouterFactory, Router
+from routing_experiment.net import NodeId, PortNumber
 
 _NodeRoutes = list[Route]
 _RouteStore = dict[NodeId, _NodeRoutes]
 
 
-class SimpleRouter(routing.Router, net.Adapter.Handler):
+class SimpleRouter(Router, net.Adapter.Handler):
     def __init__(
             self,
             adapter: net.Adapter,
@@ -92,7 +91,7 @@ class SimpleRouterFactory(RouterFactory):
     def __init__(self, config, rnd: random.Random):
         self.config = config
 
-    def create_router(self, adapter: net.Adapter, node_id: NodeId):
+    def create_router(self, adapter: net.Adapter, node_id: NodeId, tracker: instrumentation.Tracker):
         router = SimpleRouter(
             adapter=adapter,
             node_id=node_id,
