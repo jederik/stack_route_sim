@@ -1,8 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-import instrumentation
-from strategies.optimised import RandomRoutePropagator, RouteStore, _Node, _Edge, PricedRoute
+from routing_experiment.strategies.optimised import RandomRoutePropagator, RouteStore, _Node, _Edge, PricedRoute
 
 
 class MyTestCase(unittest.TestCase):

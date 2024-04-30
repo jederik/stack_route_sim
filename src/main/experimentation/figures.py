@@ -107,7 +107,7 @@ class FigureMaker:
         )
         if self.target_folder:
             script += _FILE_OUTPUT_TEMPLATE.format(
-                output_file = f"{self.target_folder}/{figure.title}.png"
+                output_file=f"{self.target_folder}/{figure.title}.png"
             )
         return script
 

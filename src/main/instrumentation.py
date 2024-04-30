@@ -19,6 +19,19 @@ class Timer(Counter):
 
 
 class Tracker:
+    def get_counter(self, name: str) -> Counter:
+        raise Exception("not implemented")
+
+    def get_timer(self, name) -> Timer:
+        raise Exception("not implemented")
+
+
+class MeasurementReader:
+    def get_counter_value(self, name):
+        raise Exception("not implemented")
+
+
+class _Implementation(Tracker, MeasurementReader):
     def __init__(self):
         self.measurements: dict[str, Counter] = {}
 
@@ -38,3 +51,8 @@ class Tracker:
             timer: Timer = counter
             return timer
         raise Exception(f"there is already a non-timer counter registered under {name}")
+
+
+def setup() -> tuple[Tracker, MeasurementReader]:
+    instance = _Implementation()
+    return instance, instance

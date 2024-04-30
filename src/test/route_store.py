@@ -3,11 +3,11 @@ import typing
 import unittest
 from unittest.mock import Mock
 
-import instrumentation
-from routing_experiment import generate_network
-from net import Network, NodeId, Cost
-from routing import Route
-from strategies.optimised import RouteStore
+from routing_experiment.net import Network, NodeId, Cost
+from routing_experiment.routing import Route
+from routing_experiment.strategies.optimised import RouteStore
+
+from routing_experiment.setup import generate_network
 
 T = typing.TypeVar('T')
 

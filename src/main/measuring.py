@@ -2,9 +2,9 @@ import instrumentation
 
 
 class MetricsCalculator:
-    def __init__(self, tracker: instrumentation.Tracker):
+    def __init__(self, measurement_reader: instrumentation.MeasurementReader):
+        self.reader = measurement_reader
         self.scraped_measurements: set[str] = set()
-        self.tracker = tracker
         self._last_measurement: dict[str, float] = {}
 
     def calculate_metric(self, metric_name: str):
@@ -16,7 +16,7 @@ class MetricsCalculator:
         self.scraped_measurements = set()
 
     def _reset_measurement(self, name):
-        self._last_measurement[name] = self.tracker.get_counter_value(name)
+        self._last_measurement[name] = self.reader.get_counter_value(name)
 
     def scrape(self, metrics) -> dict[str, float]:
         result = {
@@ -42,4 +42,4 @@ class MetricsCalculator:
 
     def _get_measurement(self, name):
         self.scraped_measurements.add(name)
-        return self.tracker.get_counter_value(name)
+        return self.reader.get_counter_value(name)

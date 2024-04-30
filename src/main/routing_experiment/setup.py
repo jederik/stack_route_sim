@@ -9,14 +9,16 @@ from .net import NodeId, Cost
 
 
 class RoutingCandidate(experimentation.Candidate):
-    def __init__(self, config, router_factory: RouterFactory, tracker: instrumentation.Tracker, rnd: random.Random):
+    def __init__(self, config, router_factory: RouterFactory, tracker: instrumentation.Tracker, rnd: random.Random,
+                 measurement_reader: instrumentation.MeasurementReader):
         self.network: net.Network = generate_network(config["network"], rnd, tracker)
         self.router_factory = router_factory
         self.routers: list[routing.Router] = [
             self.router_factory.create_router(adapter, node_id, tracker)
             for node_id, adapter in enumerate(self.network.adapters)
         ]
-        self.metrics_calculator: MetricsCalculator = GlobalMetricsCalculator(self.network, self.routers, tracker)
+        self.metrics_calculator: MetricsCalculator = GlobalMetricsCalculator(self.network, self.routers,
+                                                                             measurement_reader)
 
     def run_step(self):
         for router in self.routers:
@@ -54,8 +56,8 @@ def to_graph(network: net.Network) -> graphs.CostGraph:
 
 
 class GlobalMetricsCalculator(MetricsCalculator):
-    def __init__(self, network: net.Network, routers: list[routing.Router], tracker: instrumentation.Tracker):
-        super().__init__(tracker)
+    def __init__(self, network: net.Network, routers: list[routing.Router], reader: instrumentation.MeasurementReader):
+        super().__init__(reader)
         self.network = network
         self.routers = routers
         self.graph = to_graph(self.network)
@@ -87,7 +89,7 @@ class GlobalMetricsCalculator(MetricsCalculator):
         return route_cost
 
     def transmissions_per_node(self):
-        return self.tracker.get_counter_value(measurements.TRANSMISSION_COUNT)
+        return self.reader.get_counter_value(measurements.TRANSMISSION_COUNT)
 
     def routability_rate(self):
         routable_pairs = 0
@@ -141,11 +143,13 @@ def _create_strategy(strategy_config):
     return constructor(strategy_config, random.Random())
 
 
-def _create_candidate(config, tracker: instrumentation.Tracker, rnd: random.Random) -> experimentation.Candidate:
+def _create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
+    tracker, measurement_reader = instrumentation.setup()
     return RoutingCandidate(
         config=config,
         router_factory=_create_strategy(config["routing"]),
         tracker=tracker,
+        measurement_reader=measurement_reader,
         rnd=rnd,
     )
 
@@ -155,7 +159,6 @@ def create_experiment(rnd: random.Random, config) -> experimentation.Experiment:
         candidates={
             name: _create_candidate(
                 config=candidate_config,
-                tracker=instrumentation.Tracker(),
                 rnd=rnd,
             )
             for name, candidate_config in config["candidates"].items()
