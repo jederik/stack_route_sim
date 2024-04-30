@@ -1,7 +1,8 @@
 import copy
-from collections import defaultdict
 from typing import Optional
 
+import instrumentation
+import measurements
 from routes import PortNumber, Cost, NodeId
 
 
@@ -28,6 +29,11 @@ class Transmission:
         self.port_num = port_num
         self.message = message
         self.recipient_node_id = recipient_node_id
+
+
+class Measurements:
+    def __init__(self, tracker: instrumentation.Tracker):
+        self.transmission_count = tracker.get_counter(measurements.TRANSMISSION_COUNT)
 
 
 class Network:
@@ -61,9 +67,9 @@ class Network:
         def port_cost(self, port_num) -> Cost:
             return self.network.nodes[self.node_id].ports[port_num].cost
 
-    def __init__(self, node_count: int):
+    def __init__(self, node_count: int, tracker: instrumentation.Tracker):
+        self.measurements = Measurements(tracker)
         self._transmission_queue: list[Transmission] = []
-        self.counters: dict[str, int] = defaultdict(lambda: 0)
         self.nodes = [
             Network.Node()
             for _ in range(node_count)
@@ -99,14 +105,7 @@ class Network:
             transmission = self._transmission_queue.pop(0)
             adapter = self.adapters[transmission.recipient_node_id]
             if adapter.handler is None:
-                self._increase_counter({"name": "transmission_count", "success": "false"})
                 raise Exception("no handler registered")
             else:
+                self.measurements.transmission_count.increase(1)
                 adapter.handler.handle(transmission.port_num, transmission.message)
-                self._increase_counter({"name": "transmission_count", "success": "true"})
-
-    def _increase_counter(self, labels: dict[str, str]):
-        self.counters[str(labels)] += 1
-
-    def get_counter(self, labels: dict[str, str]):
-        return self.counters[str(labels)]

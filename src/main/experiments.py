@@ -11,10 +11,11 @@ from routes import Route, Cost, NodeId
 from strategy import RouterFactory
 
 
-def generate_network(config, rnd: random.Random = random.Random()):
+def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracker):
     # create nodes
     network = net.Network(
-        node_count=config["node_count"]
+        node_count=config["node_count"],
+        tracker=tracker,
     )
 
     # connect nodes
@@ -115,7 +116,7 @@ class GlobalMetricsCalculator(MetricsCalculator):
         return route_cost
 
     def transmissions_per_node(self):
-        return self.network.get_counter({"name": "transmission_count", "success": "true"}) / len(self.network.nodes)
+        return self.tracker.get_counter_value(measurements.TRANSMISSION_COUNT)
 
     def routability_rate(self):
         routable_pairs = 0
@@ -159,8 +160,8 @@ class GlobalMetricsCalculator(MetricsCalculator):
 
 
 class Candidate:
-    def __init__(self, config, router_factory: RouterFactory, tracker: instrumentation.Tracker):
-        self.network: net.Network = generate_network(config["network"])
+    def __init__(self, config, router_factory: RouterFactory, tracker: instrumentation.Tracker, rnd: random.Random):
+        self.network: net.Network = generate_network(config["network"], rnd, tracker)
         self.router_factory = router_factory
         self.routers: list[routing.Router] = [
             self.router_factory.create_router(adapter, node_id, tracker)
@@ -176,11 +177,12 @@ class Candidate:
         return self.metrics_calculator.scrape(metrics)
 
 
-def _create_candidate(config, tracker_factory_method: Callable[[], instrumentation.Tracker]):
+def _create_candidate(config, tracker_factory_method: Callable[[], instrumentation.Tracker], rnd: random.Random):
     return Candidate(
         config=config,
         router_factory=_create_strategy(config["routing"]),
         tracker=tracker_factory_method(),
+        rnd=rnd,
     )
 
 
@@ -202,11 +204,12 @@ class Experiment:
             sample_emitter: Callable[[Any], None],
             metrics: list[str],
             tracker_factory_method: Callable[[], instrumentation.Tracker],
+            rnd: random.Random,
     ):
         self.metrics = metrics
         self.emit_sample = sample_emitter
         self.candidates: dict[str, Candidate] = {
-            name: _create_candidate(candidate_config, tracker_factory_method)
+            name: _create_candidate(candidate_config, tracker_factory_method, rnd)
             for name, candidate_config in config["candidates"].items()
         }
         self.steps: int = config["measurement"]["steps"]

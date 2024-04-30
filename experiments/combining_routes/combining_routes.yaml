@@ -1,5 +1,5 @@
 measurement:
-  steps: 3000
+  steps: 300
   samples: 10
 figures:
   - x:

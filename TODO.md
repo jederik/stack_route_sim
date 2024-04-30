@@ -1,6 +1,5 @@
 ## Tasks
 
-- count transmissions via counter
 - metrics calculator per node
 - move MyMetricCalculator to metrics package
 - draw dependency graph

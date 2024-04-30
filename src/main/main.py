@@ -1,4 +1,5 @@
 import os
+import random
 import tempfile
 from datetime import datetime
 
@@ -40,6 +41,7 @@ def run(config: str, target: str):
         sample_emitter=figure_maker.add_sample,
         metrics=required_metrics,
         tracker_factory_method=instrumentation.Tracker,
+        rnd=random.Random(),
     )
     experiment.run()
     figure_maker.make_figures()
