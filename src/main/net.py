@@ -3,7 +3,10 @@ from typing import Optional
 
 import instrumentation
 import measurements
-from routes import PortNumber, Cost, NodeId
+
+NodeId = int
+PortNumber = int
+Cost = float
 
 
 class Adapter:

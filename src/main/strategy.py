@@ -1,6 +1,6 @@
 import instrumentation
 import net
-from routes import NodeId
+from net import NodeId
 from routing import Router
 
 

@@ -8,7 +8,8 @@ import net
 import routing
 import strategies
 from measuring import MetricsCalculator
-from routes import NodeId, Route, Cost
+from routing import Route
+from net import NodeId, Cost
 from strategy import RouterFactory
 
 

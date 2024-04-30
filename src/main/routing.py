@@ -1,6 +1,8 @@
 from typing import Optional
 
-from routes import Route, NodeId
+from net import NodeId, PortNumber
+
+Route = list[PortNumber]
 
 
 class Router:

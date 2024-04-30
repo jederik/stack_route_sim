@@ -2,8 +2,8 @@ import random
 from typing import Optional, TypeVar
 
 import net
-from routes import NodeId, Route, Cost, PortNumber
-from routing import Router
+from net import NodeId, PortNumber, Cost
+from routing import Router, Route
 from strategies.optimised import PropagationMessage
 from strategy import RouterFactory
 

@@ -5,8 +5,8 @@ from unittest.mock import Mock
 
 import instrumentation
 from routing_experiment import generate_network
-from net import Network
-from routes import NodeId, Route, Cost
+from net import Network, NodeId, Cost
+from routing import Route
 from strategies.optimised import RouteStore
 
 T = typing.TypeVar('T')

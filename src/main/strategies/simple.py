@@ -3,7 +3,8 @@ from typing import Callable, Optional
 
 import net
 import routing
-from routes import NodeId, Route, PortNumber
+from routing import Route
+from net import NodeId, PortNumber
 from strategy import RouterFactory
 
 _NodeRoutes = list[Route]

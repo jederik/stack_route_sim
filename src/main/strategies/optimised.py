@@ -2,15 +2,14 @@ import bisect
 import math
 import random
 import sys
-import time
 from typing import Optional, TypeVar
 
+import instrumentation
 import measurements
 import net
-from routes import NodeId, Route, PortNumber, Cost
-from routing import Router
+from net import NodeId, PortNumber, Cost
+from routing import Router, Route
 from strategy import RouterFactory
-import instrumentation
 
 
 class PropagationMessage:
