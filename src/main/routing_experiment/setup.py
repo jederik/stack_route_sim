@@ -16,14 +16,14 @@ class RoutingCandidate(experimentation.Candidate):
             self.router_factory.create_router(adapter, node_id, tracker)
             for node_id, adapter in enumerate(self.network.adapters)
         ]
-        self.metrics_calculator = GlobalMetricsCalculator(self.network, self.routers, measurement_reader)
+        self.metrics_scraper = MetricsScraper(self.network, self.routers, measurement_reader)
 
     def run_step(self):
         for router in self.routers:
             router.tick()
 
     def scrape_metrics(self, metrics: list[str]) -> dict[str, float]:
-        return self.metrics_calculator.scrape(metrics)
+        return self.metrics_scraper.scrape(metrics)
 
 
 def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracker):
@@ -53,7 +53,7 @@ def to_graph(network: net.Network) -> graphs.CostGraph:
     }
 
 
-class GlobalMetricsCalculator:
+class MetricsScraper:
     def __init__(self, network: net.Network, routers: list[routing.Router], reader: instrumentation.MeasurementReader):
         self.reader = reader
         self.scraped_measurements: set[str] = set()
