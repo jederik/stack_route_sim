@@ -78,8 +78,8 @@ def _pick_random(items: list[T], rnd: random.Random) -> T:
 class _Measurements:
     def __init__(self, tracker: instrumentation.Tracker):
         self.route_insertion_count = tracker.get_counter(measurements.ROUTE_INSERTION_COUNT)
-        self.route_update_seconds_sum = tracker.get_counter(measurements.ROUTE_UPDATE_SECONDS_SUM)
-        self.distance_update_seconds_sum = tracker.get_counter(measurements.DISTANCE_UPDATE_SECONDS_SUM)
+        self.route_update_seconds_sum = tracker.get_timer(measurements.ROUTE_UPDATE_SECONDS_SUM)
+        self.distance_update_seconds_sum = tracker.get_timer(measurements.DISTANCE_UPDATE_SECONDS_SUM)
         self.received_route_length = tracker.get_counter(measurements.RECEIVED_ROUTE_LENGTH)
 
 
@@ -203,17 +203,10 @@ class RouteStore:
     def insert(self, target: NodeId, route: Route, cost: Cost):
         self.measurements.received_route_length.increase(len(route))
         self.measurements.route_insertion_count.increase(1)
-
-        # TODO delegate time measurement to timer helper class
-        start = time.time()
-        distance_modified_nodes = self._store_route(self.node_id, target, route, cost)
-        end = time.time()
-        self.measurements.route_update_seconds_sum.increase(end - start)
-
-        start = time.time()
-        self._update_distances(distance_modified_nodes)
-        end = time.time()
-        self.measurements.distance_update_seconds_sum.increase(end - start)
+        with self.measurements.route_update_seconds_sum:
+            distance_modified_nodes = self._store_route(self.node_id, target, route, cost)
+        with self.measurements.distance_update_seconds_sum:
+            self._update_distances(distance_modified_nodes)
 
     def _get_node(self, node_id: NodeId):
         if node_id not in self.nodes:

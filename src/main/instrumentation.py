@@ -1,3 +1,6 @@
+import time
+
+
 class Counter:
     def __init__(self):
         self.value: float = 0
@@ -6,14 +9,32 @@ class Counter:
         self.value += amount
 
 
+class Timer(Counter):
+    def __enter__(self):
+        self.start = time.time()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        end = time.time()
+        self.increase(end - self.start)
+
+
 class Tracker:
     def __init__(self):
-        self.counters: dict[str, Counter] = {}
+        self.measurements: dict[str, Counter] = {}
 
     def get_counter(self, name: str) -> Counter:
-        if name not in self.counters:
-            self.counters[name] = Counter()
-        return self.counters[name]
+        if name not in self.measurements:
+            self.measurements[name] = Counter()
+        return self.measurements[name]
 
     def get_counter_value(self, name):
-        return self.counters[name].value
+        return self.measurements[name].value
+
+    def get_timer(self, name) -> Timer:
+        if name not in self.measurements:
+            self.measurements[name] = Timer()
+        counter = self.measurements[name]
+        if isinstance(counter, Timer):
+            timer: Timer = counter
+            return timer
+        raise Exception(f"there is already a non-timer counter registered under {name}")
