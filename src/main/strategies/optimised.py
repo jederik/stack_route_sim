@@ -87,8 +87,8 @@ class RouteStore:
     def __init__(
             self,
             node_id: NodeId,
-            rnd: random.Random = random.Random(),
-            tracker: Optional[instrumentation.Tracker] = None,
+            rnd: random.Random,
+            tracker: Optional[instrumentation.Tracker],
     ):
         self.measurements = _Measurements(tracker)
         self.rnd = rnd

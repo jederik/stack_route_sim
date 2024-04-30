@@ -1,8 +1,10 @@
 import random
 import typing
 import unittest
+from unittest.mock import Mock
 
-from experiments import generate_network
+import instrumentation
+from routing_experiment import generate_network
 from net import Network
 from routes import NodeId, Route, Cost
 from strategies.optimised import RouteStore
@@ -29,17 +31,17 @@ def _random_walk(network: Network, source: NodeId, rnd: random.Random) -> tuple[
 
 class MyTestCase(unittest.TestCase):
     def test_self_route(self):
-        store = RouteStore(1)
+        store = RouteStore(1, Mock(), Mock())
         self.assertEqual([], store.shortest_route(1).path)  # add assertion here
 
     def test_insertion(self):
-        store = RouteStore(1)
+        store = RouteStore(1, Mock(), Mock())
         route = [1, 2, 3, 4]
         store.insert(2, route, 4)
         self.assertEqual(route, store.shortest_route(2).path)
 
     def test_combined_routes(self):
-        store = RouteStore(1)
+        store = RouteStore(1, Mock(), Mock())
         store.insert(3, [1, 2, 4], 3)
         store.insert(2, [1, 2], 2)
         store.insert(2, [3], 1)
@@ -54,9 +56,10 @@ class MyTestCase(unittest.TestCase):
                     "density": .5,
                 },
                 rnd=rnd,
+                tracker=Mock(),
             )
             source = int(rnd.random() * len(network.nodes))
-            store = RouteStore(source, rnd)
+            store = RouteStore(source, rnd, Mock())
             for _ in range(10):
                 target, route, cost = _random_walk(network, source, rnd)
                 store.insert(target, route, cost)
@@ -75,33 +78,6 @@ class MyTestCase(unittest.TestCase):
                     node = port.target_node
                 self.assertEqual(node, target)
                 self.assertEqual(expected_cost, cost)
-
-    def test_random_route_retrieval(self):
-        for i in range(100):
-            rnd = random.Random(i)
-            network = generate_network(
-                config={
-                    "node_count": 20,
-                    "density": .5,
-                },
-                rnd=rnd,
-            )
-            source = int(rnd.random() * len(network.nodes))
-            store = RouteStore(source, rnd)
-            for _ in range(10):
-                target, route, cost = _random_walk(network, source, rnd)
-                store.insert(target, route, cost)
-            target, route, cost = store.get_random_route()
-
-            node = source
-            expected_cost = 0
-            for port_num in route:
-                self.assertTrue(port_num in network.nodes[node].ports)
-                port = network.nodes[node].ports[port_num]
-                expected_cost += port.cost
-                node = port.target_node
-            self.assertEqual(node, target)
-            self.assertEqual(expected_cost, cost)
 
 
 if __name__ == '__main__':

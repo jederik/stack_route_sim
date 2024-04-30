@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
+import instrumentation
 from strategies.optimised import RandomRoutePropagator, RouteStore, _Node, _Edge, PricedRoute
 
 
@@ -24,6 +25,7 @@ class MyTestCase(unittest.TestCase):
                         },
                     },
                 },
+                "cutoff_rate": .1,
                 "rnd": [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0],
             },
             "then": {
@@ -36,8 +38,11 @@ class MyTestCase(unittest.TestCase):
         rnd.random = Mock(side_effect=case["given"]["rnd"])
 
         # mock
-        propagator = RandomRoutePropagator(, rnd
-        store = RouteStore(case["given"]["my_id"])
+        propagator = RandomRoutePropagator(
+            cutoff_rate=case["given"]["cutoff_rate"],
+            rnd=rnd,
+        )
+        store = RouteStore(case["given"]["my_id"], rnd, instrumentation.Tracker())
         for node_id, given_node in case["given"]["nodes"].items():
             store.nodes[node_id] = _Node()
             for edge_target, given_edge in given_node["edges"].items():

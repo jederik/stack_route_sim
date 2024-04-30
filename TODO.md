@@ -1,8 +1,8 @@
 ## Tasks
 
-- metrics calculator per node
-- move MyMetricCalculator to metrics package
 - draw dependency graph
+- move MyMetricCalculator to metrics package
+- metrics calculator per node
 - write README.md
 - group figures by domain
 - implement incremental SSSP

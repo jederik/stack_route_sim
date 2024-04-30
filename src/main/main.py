@@ -1,14 +1,12 @@
 import os
 import random
-import tempfile
 from datetime import datetime
 
 import click
 import yaml
 
 import experiments
-import figures
-import instrumentation
+import routing_experiment
 
 
 def read_config(path):
@@ -29,22 +27,17 @@ def read_config(path):
 )
 def run(config: str, target: str):
     main_config = read_config(config)
-    figure_maker = figures.FigureMaker(
-        config=main_config["figures"],
-        candidates=main_config["candidates"].keys(),
-        data_file_location=tempfile.mktemp(),
-        target_folder=target,
-    )
-    required_metrics = figure_maker.required_metrics()
-    experiment = experiments.Experiment(
-        config=main_config,
-        sample_emitter=figure_maker.add_sample,
-        metrics=required_metrics,
-        tracker_factory_method=instrumentation.Tracker,
-        rnd=random.Random(),
+    run_experiment(main_config, target)
+
+
+def run_experiment(config, target):
+    rnd = random.Random()
+    experiment = experiments.ExperimentRunner(
+        config=config,
+        experiment=routing_experiment.create_experiment(rnd, config),
+        figure_folder=target,
     )
     experiment.run()
-    figure_maker.make_figures()
 
 
 if __name__ == '__main__':
