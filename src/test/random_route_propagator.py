@@ -42,7 +42,7 @@ class MyTestCase(unittest.TestCase):
             cutoff_rate=case["given"]["cutoff_rate"],
             rnd=rnd,
         )
-        store = RouteStore(case["given"]["my_id"], rnd, instrumentation.Tracker())
+        store = RouteStore(case["given"]["my_id"], rnd, Mock())
         for node_id, given_node in case["given"]["nodes"].items():
             store.nodes[node_id] = _Node()
             for edge_target, given_edge in given_node["edges"].items():
