@@ -81,7 +81,7 @@ class MetricsCalculator:
         return self.tracker.get_counter_value(name)
 
 
-class MyMetricsCalculator(MetricsCalculator):
+class GlobalMetricsCalculator(MetricsCalculator):
     def __init__(self, network: net.Network, routers: list[routing.Router], tracker: instrumentation.Tracker):
         super().__init__(tracker)
         self.network = network
@@ -166,7 +166,7 @@ class Candidate:
             self.router_factory.create_router(adapter, node_id, tracker)
             for node_id, adapter in enumerate(self.network.adapters)
         ]
-        self.metrics_calculator: MetricsCalculator = MyMetricsCalculator(self.network, self.routers, tracker)
+        self.metrics_calculator: MetricsCalculator = GlobalMetricsCalculator(self.network, self.routers, tracker)
 
     def run_step(self):
         for router in self.routers:
