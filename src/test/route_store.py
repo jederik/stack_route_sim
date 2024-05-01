@@ -1,7 +1,7 @@
 import random
 import typing
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock
 
 from routing_experiment.net import Network, NodeId, Cost
 from routing_experiment.routing import Route
@@ -35,13 +35,13 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual([], store.shortest_route(1).path)  # add assertion here
 
     def test_insertion(self):
-        store = RouteStore(1, Mock(), Mock())
+        store = RouteStore(1, Mock(), MagicMock())
         route = [1, 2, 3, 4]
         store.insert(2, route, 4)
         self.assertEqual(route, store.shortest_route(2).path)
 
     def test_combined_routes(self):
-        store = RouteStore(1, Mock(), Mock())
+        store = RouteStore(1, Mock(), MagicMock())
         store.insert(3, [1, 2, 4], 3)
         store.insert(2, [1, 2], 2)
         store.insert(2, [3], 1)
@@ -59,7 +59,7 @@ class MyTestCase(unittest.TestCase):
                 tracker=Mock(),
             )
             source = int(rnd.random() * len(network.nodes))
-            store = RouteStore(source, rnd, Mock())
+            store = RouteStore(source, rnd, MagicMock())
             for _ in range(10):
                 target, route, cost = _random_walk(network, source, rnd)
                 store.insert(target, route, cost)
