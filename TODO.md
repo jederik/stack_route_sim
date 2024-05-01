@@ -1,7 +1,6 @@
 ## Tasks
 
 - draw dependency graph
-- move MyMetricCalculator to metrics package
 - metrics calculator per node
 - write README.md
 - group figures by domain
