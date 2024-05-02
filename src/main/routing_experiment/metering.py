@@ -44,7 +44,7 @@ class MetricsCalculator:
         return route_cost
 
     def transmissions_per_node(self):
-        return self.measurement_session.get(measurements.TRANSMISSION_COUNT)
+        return self.measurement_session.get(measurements.TRANSMISSION_COUNT) / len(self.network.nodes)
 
     def routability_rate(self):
         num_samples = 100
