@@ -303,7 +303,7 @@ class RandomRoutePropagator(Propagator):
             source = store.node_id
         if len(store.nodes[source].edges) == 0:
             return source, [], 0
-        if self.rnd.random() > self.cutoff_rate:
+        if self.cutoff_rate > self.rnd.random():
             return source, [], 0
         successor = _pick_random(list(store.nodes[source].edges.keys()), self.rnd)
         target, route_tail, tail_cost = self._get_random_route(store, successor)
