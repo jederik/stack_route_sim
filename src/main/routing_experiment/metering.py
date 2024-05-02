@@ -1,5 +1,3 @@
-import numpy.random
-
 import instrumentation
 from experimentation.metering import MetricName
 from routing_experiment import net, routing, measurements, graphs
@@ -47,43 +45,35 @@ class MetricsCalculator:
         return self.measurement_session.get(measurements.TRANSMISSION_COUNT) / len(self.network.nodes)
 
     def routability_rate(self):
-        num_samples = 100
-        n = len(self.network.nodes)
-
         routable_pairs = 0
-        for _ in range(num_samples):
-            source = numpy.random.randint(n)
-            target = numpy.random.randint(n)
-            if self.routers[source].has_route(target):
-                routable_pairs += 1
+        for i in range(len(self.network.nodes)):
+            router = self.routers[i]
+            for j in range(len(self.network.nodes)):
+                if router.has_route(j):
+                    routable_pairs += 1
 
         reachable_pairs = 0
         reachabilities = graphs.reachabilities(self.graph)
-        for _ in range(num_samples):
-            source = numpy.random.randint(n)
-            target = numpy.random.randint(n)
-            if reachabilities[source][target]:
-                reachable_pairs += 1
+        for i in range(len(self.network.nodes)):
+            for j in range(len(self.network.nodes)):
+                if reachabilities[i][j]:
+                    reachable_pairs += 1
 
         return routable_pairs / reachable_pairs
 
     def efficiency(self):
-        num_samples = 1000
-        n = len(self.network.nodes)
-
-        total_route_length = 0
-        total_node_distance = 0
+        route_lengths = 0
+        node_distances = 0
         distances = graphs.distances(self.graph)
-        for _ in range(num_samples):
-            source = numpy.random.randint(n)
-            target = numpy.random.randint(n)
-            route = self.routers[source].route(target)
-            if route is not None:
-                total_route_length += self.route_cost(source, route)
-                total_node_distance += distances[source][target]
-        if total_route_length == 0:
+        for i in range(len(self.network.nodes)):
+            for j in range(len(self.network.nodes)):
+                route = self.routers[i].route(j)
+                if route is not None:
+                    route_lengths += self.route_cost(i, route)
+                    node_distances += distances[i][j]
+        if route_lengths == 0:
             return 1
-        return total_node_distance / total_route_length
+        return node_distances / route_lengths
 
     def route_update_duration(self) -> float:
         return self.measurement_session.rate(measurements.ROUTE_UPDATE_SECONDS_SUM, measurements.ROUTE_INSERTION_COUNT)
