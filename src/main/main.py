@@ -32,12 +32,13 @@ def run(config: str, target: str):
 
 def run_experiment(config, target):
     rnd = random.Random()
-    experiment = experimentation.ExperimentRunner(
+    experiment_runner = experimentation.init_experiment_runner(
         config=config,
-        experiment=routing_experiment.create_experiment(rnd, config),
+        rnd=rnd,
         figure_folder=target,
+        experiment_factory_method=routing_experiment.create_experiment,
     )
-    experiment.run()
+    experiment_runner.run()
 
 
 if __name__ == '__main__':

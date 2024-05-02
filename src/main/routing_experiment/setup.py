@@ -70,13 +70,13 @@ def _create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
     )
 
 
-def create_experiment(rnd: random.Random, config) -> experimentation.Experiment:
+def create_experiment(rnd: random.Random, candidate_configs) -> experimentation.Experiment:
     return experimentation.Experiment(
         candidates={
             name: _create_candidate(
                 config=candidate_config,
                 rnd=rnd,
             )
-            for name, candidate_config in config["candidates"].items()
+            for name, candidate_config in candidate_configs.items()
         }
     )

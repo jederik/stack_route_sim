@@ -8,30 +8,24 @@ plotting:
         - metric: propagated_route_length
         - metric: route_insertion_duration
         - metric: distance_update_duration
+default_candidate_config:
+  network:
+    node_count: 100
+    density: .1
+  routing:
+    strategy: optimised
 candidates:
   random:
-    network:
-      node_count: 100
-      density: .1
     routing:
-      strategy: optimised
       propagation:
         strategy: random_route
         cutoff_rate: .1
   shortest:
-    network:
-      node_count: 100
-      density: .1
     routing:
-      strategy:  optimised
       propagation:
         strategy: shortest_route
   alternating:
-    network:
-      node_count: 100
-      density: .1
     routing:
-      strategy:  optimised
       propagation:
         strategy: alternate
         shortest:

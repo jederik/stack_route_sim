@@ -1,4 +1,9 @@
+import copy
+import random
 import tempfile
+from typing import Callable
+
+import experimentation
 
 from .metering import MetricName, MetricValue
 from . import plotting
@@ -58,3 +63,32 @@ class ExperimentRunner:
                 for name, candidate in self.experiment.candidates.items()
             },
         }
+
+
+def apply_patch(original: dict, patch: dict) -> dict:
+    result = copy.deepcopy(original)
+    for key in patch.keys():
+        if key in original and isinstance(original[key], dict):
+            result[key] = apply_patch(original[key], patch[key])
+        else:
+            result[key] = patch[key]
+    return result
+
+
+def init_experiment_runner(
+        config: dict[str],
+        rnd: random.Random,
+        figure_folder: str,
+        experiment_factory_method: Callable[[random.Random, dict[str, dict]], Experiment]
+):
+    default_candidate_config = config["default_candidate_config"]
+    candidate_configs = {
+        candidate_name: apply_patch(default_candidate_config, candidate_config_patch)
+        for candidate_name, candidate_config_patch in config["candidates"].items()
+    }
+    experiment_runner = experimentation.ExperimentRunner(
+        config=config,
+        experiment=experiment_factory_method(rnd, candidate_configs),
+        figure_folder=figure_folder,
+    )
+    return experiment_runner

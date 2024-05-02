@@ -8,24 +8,19 @@ plotting:
         - metric: routability_rate
         - metric: efficiency
         - metric: efficient_routability
+default_candidate_config:
+  network:
+    node_count: 100
+    density: .1
+  routing:
+    strategy: optimised
+    propagation:
+      strategy: random_route
+      cutoff_rate: .1
 candidates:
-  eliminate_cycles_on:
-    network:
-      node_count: 100
-      density: .1
+  with_eliminating_cycles:
     routing:
-      strategy: optimised
       eliminate_cycles: on
-      propagation:
-        strategy: random_route
-        cutoff_rate: .1
-  eliminate_cycles_off:
-    network:
-      node_count: 100
-      density: .1
+  without_eliminating_cycles:
     routing:
-      strategy:  optimised
       eliminate_cycles: off
-      propagation:
-        strategy: random_route
-        cutoff_rate: .1
