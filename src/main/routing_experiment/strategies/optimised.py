@@ -206,11 +206,6 @@ class RouteStore:
         with self.measurements.distance_update_seconds_sum:
             self._update_distances(distance_modified_nodes)
 
-    def _get_node(self, node_id: NodeId):
-        if node_id not in self.nodes:
-            self.nodes[node_id] = _Node()
-        return self.nodes[node_id]
-
     def _update_distances(self, distance_modified_nodes: list[NodeId]):
         # Dijkstra:
         for i in self.nodes.keys():
