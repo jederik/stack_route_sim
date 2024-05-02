@@ -1,5 +1,7 @@
 ## Tasks
 
+- re-enable time measurements
+- find out why figures are not stored
 - implement incremental SSSP
 - factor out gnuplot script generation
 - separate router and store
