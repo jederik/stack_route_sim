@@ -75,11 +75,24 @@ def apply_patch(original: dict, patch: dict) -> dict:
     return result
 
 
+def _create_experiment(
+        candidate_creator_function: Callable[[dict, random.Random], Candidate],
+        rnd: random.Random,
+        candidate_configs: dict[str, dict],
+) -> Experiment:
+    return Experiment(
+        candidates={
+            candidate_name: candidate_creator_function(candidate_config, rnd)
+            for candidate_name, candidate_config in candidate_configs.items()
+        },
+    )
+
+
 def init_experiment_runner(
         config: dict[str],
         rnd: random.Random,
         figure_folder: str,
-        experiment_factory_method: Callable[[random.Random, dict[str, dict]], Experiment]
+        candidate_creator_function: Callable[[dict, random.Random], Candidate],
 ):
     default_candidate_config = config["default_candidate_config"]
     candidate_configs = {
@@ -88,7 +101,7 @@ def init_experiment_runner(
     }
     experiment_runner = experimentation.ExperimentRunner(
         config=config,
-        experiment=experiment_factory_method(rnd, candidate_configs),
+        experiment=_create_experiment(candidate_creator_function, rnd, candidate_configs),
         figure_folder=figure_folder,
     )
     return experiment_runner

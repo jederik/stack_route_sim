@@ -60,23 +60,11 @@ def _create_strategy(strategy_config):
     return constructor(strategy_config, random.Random())
 
 
-def _create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
+def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
     tracker, measurement_reader = instrumentation.setup()
     return RoutingCandidate(
         router_factory=_create_strategy(config["routing"]),
         tracker=tracker,
         measurement_reader=measurement_reader,
         network=generate_network(config["network"], rnd, tracker),
-    )
-
-
-def create_experiment(rnd: random.Random, candidate_configs) -> experimentation.Experiment:
-    return experimentation.Experiment(
-        candidates={
-            name: _create_candidate(
-                config=candidate_config,
-                rnd=rnd,
-            )
-            for name, candidate_config in candidate_configs.items()
-        }
     )

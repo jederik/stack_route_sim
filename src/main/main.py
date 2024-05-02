@@ -36,7 +36,7 @@ def run_experiment(config, target):
         config=config,
         rnd=rnd,
         figure_folder=target,
-        experiment_factory_method=routing_experiment.create_experiment,
+        candidate_creator_function=routing_experiment.create_candidate,
     )
     experiment_runner.run()
 

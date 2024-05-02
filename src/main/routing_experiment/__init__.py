@@ -1,1 +1,1 @@
-from .setup import create_experiment
+from .setup import create_candidate
