@@ -1,19 +1,13 @@
 measurement:
-  steps: 30
+  steps: 300
   samples: 10
-figures:
-  - x:
-      metric: transmissions_per_node
-    y:
-      metric: routability_rate
-  - x:
-      metric: transmissions_per_node
-    y:
-      metric: efficiency
-  - x:
-      metric: transmissions_per_node
-    y:
-      metric: efficient_routability
+plotting:
+  groups:
+    - x_metric: transmissions_per_node
+      figures:
+        - metric: routability_rate
+        - metric: efficiency
+        - metric: efficient_routability
 candidates:
   eliminate_cycles_on:
     network:

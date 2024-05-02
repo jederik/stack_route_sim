@@ -1,19 +1,13 @@
 measurement:
   steps: 30
   samples: 10
-figures:
-  - x:
-      metric: transmissions_per_node
-    y:
-      metric: propagated_route_length
-  - x:
-      metric: transmissions_per_node
-    y:
-      metric: route_insertion_duration
-  - x:
-      metric: transmissions_per_node
-    y:
-      metric: distance_update_duration
+plotting:
+  groups:
+    - x_metric: transmissions_per_node
+      figures:
+        - metric: propagated_route_length
+        - metric: route_insertion_duration
+        - metric: distance_update_duration
 candidates:
   random:
     network:

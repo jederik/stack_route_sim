@@ -1,7 +1,7 @@
 import tempfile
 
 from .metering import MetricName, MetricValue
-from . import figures
+from . import plotting
 
 
 class Candidate:
@@ -25,8 +25,8 @@ class ExperimentRunner:
             figure_folder: str,
     ):
         self.experiment = experiment
-        self.figure_maker = figures.FigureMaker(
-            config=config["figures"],
+        self.figure_maker = plotting.FigureMaker(
+            config=config["plotting"],
             candidates=config["candidates"].keys(),
             data_file_location=tempfile.mktemp(),
             target_folder=figure_folder,
