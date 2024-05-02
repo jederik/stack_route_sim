@@ -1,0 +1,37 @@
+measurement:
+  steps: 30
+  samples: 10
+figures:
+  - x:
+      metric: transmissions_per_node
+    y:
+      metric: routability_rate
+  - x:
+      metric: transmissions_per_node
+    y:
+      metric: efficiency
+  - x:
+      metric: transmissions_per_node
+    y:
+      metric: efficient_routability
+candidates:
+  eliminate_cycles_on:
+    network:
+      node_count: 100
+      density: .1
+    routing:
+      strategy: optimised
+      eliminate_cycles: on
+      propagation:
+        strategy: random_route
+        cutoff_rate: .1
+  eliminate_cycles_off:
+    network:
+      node_count: 100
+      density: .1
+    routing:
+      strategy:  optimised
+      eliminate_cycles: off
+      propagation:
+        strategy: random_route
+        cutoff_rate: .1

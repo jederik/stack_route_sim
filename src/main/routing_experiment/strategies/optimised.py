@@ -250,7 +250,10 @@ class OptimisedRouter(Router, net.Adapter.Handler):
             propagation_strategy: Propagator,
             rnd: random.Random,
             tracker: instrumentation.Tracker,
+            eliminate_cycles: bool,
     ):
+        self.eliminate_cycles = eliminate_cycles
+        self.node_id = node_id
         self.adapter = adapter
         self.store = RouteStore(node_id, rnd, tracker)
         self._propagation_strategy = propagation_strategy
@@ -267,6 +270,11 @@ class OptimisedRouter(Router, net.Adapter.Handler):
 
     def handle(self, port_num: PortNumber, message) -> None:
         message: PropagationMessage = message
+        self._handle_propagation_message(message, port_num)
+
+    def _handle_propagation_message(self, message: PropagationMessage, port_num: PortNumber):
+        if self.eliminate_cycles and message.target == self.node_id:
+            return
         self.store.insert(
             target=message.target,
             route=[port_num] + message.route,
@@ -366,6 +374,7 @@ def _create_propagator(config, rnd: random.Random) -> Propagator:
 
 class OptimisedRouterFactory(RouterFactory):
     def __init__(self, routing_config, rnd: random.Random):
+        self.eliminate_cycles = False if "eliminate_cycles" not in routing_config else routing_config["eliminate_cycles"]
         self.rnd = rnd
         self.propagator = _create_propagator(routing_config["propagation"], rnd)
 
@@ -376,4 +385,5 @@ class OptimisedRouterFactory(RouterFactory):
             propagation_strategy=self.propagator,
             rnd=self.rnd,
             tracker=tracker,
+            eliminate_cycles=self.eliminate_cycles,
         )
