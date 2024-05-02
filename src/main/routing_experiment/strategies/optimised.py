@@ -36,7 +36,7 @@ class _Edge:
         return str({"routes": [pr.path for pr in self.priced_routes]})
 
     def insert_path(self, route: Route, cost: Cost):
-        bisect.insort(
+        bisect.insort_left(
             self.priced_routes,
             PricedRoute(route, cost),
             key=lambda pr: pr.cost,
@@ -168,8 +168,11 @@ class RouteStore:
                             self.nodes[target].edges[successor] = _Edge()
                         self.nodes[target].edges[successor].insert_path(remaining_route, remaining_cost)
 
-                    # remove replaced paths
+                    # remove replaced paths between source and successor
                     self.nodes[source].edges[successor].update_paths(non_prefixed_edge_routes)
+                    if successor == target:
+                        self.nodes[source].edges[successor].insert_path(route, cost)
+                        # (we might get isolated nodes otherwise)
                     if len(self.nodes[source].edges[successor].priced_routes) == 0:
                         del self.nodes[source].edges[successor]
 
@@ -207,6 +210,8 @@ class RouteStore:
             self._update_distances(distance_modified_nodes)
 
     def _update_distances(self, distance_modified_nodes: list[NodeId]):
+        if len(distance_modified_nodes) == 0:
+            return
         # Dijkstra:
         for i in self.nodes.keys():
             self.nodes[i].predecessor = None
@@ -224,6 +229,11 @@ class RouteStore:
                     if alt < self.nodes[v].distance:
                         self.nodes[v].predecessor = u
                         self.nodes[v].distance = alt
+        for node_id in list(self.nodes.keys()):
+            if node_id != self.node_id and self.nodes[node_id].predecessor is None:
+                # TODO how can this even happen?
+                self._log(f"{node_id} has no pred. nodes: {self.nodes}")
+                del self.nodes[node_id]
 
     def _log(self, msg):
         print(f"{self.node_id}: {str(msg)}", file=sys.stderr)

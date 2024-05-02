@@ -5,7 +5,7 @@ from unittest.mock import Mock, MagicMock
 
 from routing_experiment.net import Network, NodeId, Cost
 from routing_experiment.routing import Route
-from routing_experiment.strategies.optimised import RouteStore
+from routing_experiment.strategies.optimised import RouteStore, _Node, _Edge, PricedRoute
 
 from routing_experiment.setup import generate_network
 
@@ -78,6 +78,23 @@ class MyTestCase(unittest.TestCase):
                     node = port.target_node
                 self.assertEqual(node, target)
                 self.assertEqual(expected_cost, cost)
+
+    def test_finding_shorter_path(self):
+        store = RouteStore(0, Mock(), MagicMock())
+        store.nodes[0] = _Node()
+        store.nodes[0].edges[1] = _Edge()
+        store.nodes[0].edges[1].insert_path([1, 2], 10)
+        store.nodes[1] = _Node()
+
+        store.insert(
+            target=1,
+            route=[1],
+            cost=3,
+        )
+
+        self.assertTrue(1 in store.nodes[0].edges)
+        self.assertTrue(len(store.nodes[0].edges[1].priced_routes) != 0)
+        self.assertIsNotNone(store.nodes[1].predecessor)
 
 
 if __name__ == '__main__':
