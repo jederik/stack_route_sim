@@ -1,4 +1,5 @@
 import random
+from typing import Callable
 
 import experimentation
 import instrumentation
@@ -32,14 +33,30 @@ class RoutingCandidate(experimentation.Candidate):
         return metrics_calculator.scrape(metrics)
 
 
+def cost_generator_same(rnd: random.Random, i: int, j: int) -> tuple[float, float]:
+    return 1, 1
+
+
+def cost_generator_uniform(rnd: random.Random, i: int, j: int) -> tuple[float, float]:
+    return rnd.random(), rnd.random()
+
+
 def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracker):
+    cost_distribution = config["cost_distribution"] if "cost_distribution" in config else "same"
+    cost_generator: Callable[[random.Random, int, int], tuple[float, float]]
+    if cost_distribution == "same":
+        cost_generator = cost_generator_same
+    elif cost_distribution == "uniform":
+        cost_generator = cost_generator_uniform
+    else:
+        raise Exception(f"unknown cost distribution: {cost_distribution}")
     strategy = config["strategy"] if "strategy" in config else "gilbert"
     if strategy == "gilbert":
         graph = graphs.generate_gilbert_graph(
             n=config["node_count"],
             p=config["density"],
             rnd=rnd,
-            cost_generator=lambda i, j: (1, 1),
+            cost_generator=lambda i, j: cost_generator(rnd, i, j),
         )
     elif strategy == "watts_strogatz":
         graph = graphs.generate_watts_strogatz_graph(
@@ -47,7 +64,7 @@ def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracke
             k=config["degree"],
             beta=config["beta"],
             rnd=rnd,
-            cost_generator=lambda i, j: (1, 1),
+            cost_generator=lambda i, j: cost_generator(rnd, i, j),
         )
     else:
         raise Exception(f"unknown network generation strategy: {strategy}")
@@ -64,7 +81,7 @@ def _graph_to_network(graph: graphs.CostGraph, tracker: instrumentation.Tracker)
     return network
 
 
-def _create_strategy(strategy_config):
+def _create_router_factory(strategy_config):
     strategy: str = strategy_config["strategy"]
     if strategy == "simple":
         constructor = strategies.simple.SimpleRouterFactory
@@ -78,7 +95,7 @@ def _create_strategy(strategy_config):
 def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
     tracker, measurement_reader = instrumentation.setup()
     return RoutingCandidate(
-        router_factory=_create_strategy(config["routing"]),
+        router_factory=_create_router_factory(config["routing"]),
         tracker=tracker,
         measurement_reader=measurement_reader,
         network=generate_network(config["network"], rnd, tracker),

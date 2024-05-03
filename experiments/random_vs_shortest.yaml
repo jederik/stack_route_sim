@@ -11,6 +11,7 @@ plotting:
 default_candidate_config:
   network:
     strategy: watts_strogatz
+    cost_distribution: uniform
     node_count: 100
     degree: 10
     beta: 0.0
