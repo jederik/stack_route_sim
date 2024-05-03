@@ -1,6 +1,7 @@
 import os
 import random
 from datetime import datetime
+from typing import Optional
 
 import click
 import yaml
@@ -25,12 +26,12 @@ def read_config(path):
     default=os.getenv("TARGET", f"./results/{datetime.now().strftime('%Y-%m-%dT%H:%M:%S')}"),
     help="directory in which figures should be stored",
 )
-def run(config: str, target: str):
+def run(config: str, target: Optional[str]):
     main_config = read_config(config)
     run_experiment(main_config, target)
 
 
-def run_experiment(config, target):
+def run_experiment(config: dict[str], target: Optional[str]):
     rnd = random.Random()
     experiment_runner = experimentation.init_experiment_runner(
         config=config,

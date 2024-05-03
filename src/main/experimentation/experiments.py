@@ -1,7 +1,7 @@
 import copy
 import random
 import tempfile
-from typing import Callable
+from typing import Callable, Optional
 
 import experimentation
 
@@ -27,7 +27,7 @@ class ExperimentRunner:
             self,
             config,
             experiment: Experiment,
-            figure_folder: str,
+            figure_folder: Optional[str],
     ):
         self.experiment = experiment
         self.figure_maker = plotting.FigureMaker(
@@ -91,7 +91,7 @@ def _create_experiment(
 def init_experiment_runner(
         config: dict[str],
         rnd: random.Random,
-        figure_folder: str,
+        figure_folder: Optional[str],
         candidate_creator_function: Callable[[dict, random.Random], Candidate],
 ):
     default_candidate_config = config["default_candidate_config"]

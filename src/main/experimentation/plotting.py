@@ -79,7 +79,8 @@ class FigureMaker:
         self.samples.append(sample)
 
     def make_figures(self):
-        pathlib.Path(self.target_folder).mkdir(parents=True, exist_ok=True)
+        if self.target_folder is not None:
+            pathlib.Path(self.target_folder).mkdir(parents=True, exist_ok=True)
         for group in self.groups:
             for figure in group.figures:
                 self._write_data(group, figure)
