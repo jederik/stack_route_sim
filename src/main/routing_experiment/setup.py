@@ -33,19 +33,24 @@ class RoutingCandidate(experimentation.Candidate):
 
 
 def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracker):
+    strategy = config["strategy"] if "strategy" in config else "gilbert"
+    if strategy == "gilbert":
+        return generate_gilbert_network(config, rnd, tracker)
+    raise Exception(f"unknown network generation strategy: {strategy}")
+
+
+def generate_gilbert_network(config, rnd, tracker):
     # create nodes
     network = net.Network(
         node_count=config["node_count"],
         tracker=tracker,
     )
-
     # connect nodes
     p = config["density"]
     for n1 in range(len(network.nodes)):
         for n2 in range(len(network.nodes)):
             if p > rnd.random():
                 network.connect(n1, n2, 1, 1)
-
     return network
 
 
