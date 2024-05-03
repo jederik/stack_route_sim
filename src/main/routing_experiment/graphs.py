@@ -51,3 +51,21 @@ def generate_gilbert_graph(
                 graph[i][j] = forward_cost
                 graph[j][i] = backward_cost
     return graph
+
+
+def generate_watts_strogatz_graph(n: int, k: int, beta: float, rnd: random.Random,
+                                  cost_generator: Callable[[int, int], tuple[float, float]]) -> CostGraph:
+    graph: CostGraph = {}
+    for i in range(n):
+        graph[i] = {}
+    for i in range(n):
+        for d in range(1, k//2):
+            if beta > rnd.random():
+                d = int(rnd.random() * (n-1))
+            j = (i + d) % n
+            forward_cost, backward_cost = cost_generator(i, j)
+            graph[i][j] = forward_cost
+            graph[j][i] = backward_cost
+    return graph
+
+

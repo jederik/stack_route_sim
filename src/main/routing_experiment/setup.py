@@ -41,6 +41,14 @@ def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracke
             rnd=rnd,
             cost_generator=lambda i, j: (1, 1),
         )
+    elif strategy == "watts_strogatz":
+        graph = graphs.generate_watts_strogatz_graph(
+            n=config["node_count"],
+            k=config["degree"],
+            beta=config["beta"],
+            rnd=rnd,
+            cost_generator=lambda i, j: (1, 1),
+        )
     else:
         raise Exception(f"unknown network generation strategy: {strategy}")
     return _graph_to_network(graph, tracker)

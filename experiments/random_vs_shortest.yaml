@@ -10,8 +10,10 @@ plotting:
         - metric: efficient_routability
 default_candidate_config:
   network:
+    strategy: watts_strogatz
     node_count: 100
-    density: .1
+    degree: 10
+    beta: 0.0
   routing:
     strategy: optimised
 candidates:
