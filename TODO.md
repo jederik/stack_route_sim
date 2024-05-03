@@ -1,7 +1,6 @@
 ## Tasks
 
 - re-enable time measurements
-- implement incremental SSSP
 - factor out gnuplot script generation
 - separate router and store
 - optimised router: incremental Dijkstra
