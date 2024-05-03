@@ -2,7 +2,7 @@ import random
 
 import experimentation
 import instrumentation
-from . import net, routing, strategies
+from . import net, routing, strategies, graphs
 from .metering import _create_metrics_calculator
 from .routing import RouterFactory
 
@@ -35,22 +35,24 @@ class RoutingCandidate(experimentation.Candidate):
 def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracker):
     strategy = config["strategy"] if "strategy" in config else "gilbert"
     if strategy == "gilbert":
-        return generate_gilbert_network(config, rnd, tracker)
-    raise Exception(f"unknown network generation strategy: {strategy}")
+        graph = graphs.generate_gilbert_graph(
+            n=config["node_count"],
+            p=config["density"],
+            rnd=rnd,
+            cost_generator=lambda i, j: (1, 1),
+        )
+    else:
+        raise Exception(f"unknown network generation strategy: {strategy}")
+    return _graph_to_network(graph, tracker)
 
 
-def generate_gilbert_network(config, rnd, tracker):
-    # create nodes
-    network = net.Network(
-        node_count=config["node_count"],
-        tracker=tracker,
-    )
-    # connect nodes
-    p = config["density"]
-    for n1 in range(len(network.nodes)):
-        for n2 in range(len(network.nodes)):
-            if p > rnd.random():
-                network.connect(n1, n2, 1, 1)
+def _graph_to_network(graph: graphs.CostGraph, tracker: instrumentation.Tracker) -> net.Network:
+    network = net.Network(len(graph), tracker)
+    for vertex_id, vertex in graph.items():
+        for successor_id, forward_cost in vertex.items():
+            if successor_id > vertex_id:
+                backward_cost = graph[successor_id][vertex_id]
+                network.connect(vertex_id, successor_id, forward_cost, backward_cost)
     return network
 
 

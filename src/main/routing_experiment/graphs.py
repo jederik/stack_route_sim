@@ -1,4 +1,6 @@
 import math
+import random
+from typing import Callable
 
 CostGraph = dict[int, dict[int, float]]
 
@@ -32,3 +34,20 @@ def distances(adj_lists: CostGraph) -> list[list[float]]:
                 if detour < dist[i][j]:
                     dist[i][j] = detour
     return dist
+
+
+def generate_gilbert_graph(
+        n: int,
+        p: float, rnd: random.Random,
+        cost_generator: Callable[[int, int], tuple[float, float]]
+) -> CostGraph:
+    graph: CostGraph = {}
+    for i in range(n):
+        graph[i] = {}
+    for i in range(n):
+        for j in range(n):
+            if p > rnd.random():
+                forward_cost, backward_cost = cost_generator(i, j)
+                graph[i][j] = forward_cost
+                graph[j][i] = backward_cost
+    return graph
