@@ -1,0 +1,48 @@
+measurement:
+  steps: 1000
+  samples: 100
+plotting:
+  groups:
+    - x_metric: transmissions_per_node
+      figures:
+        - metric: routability_rate
+        - metric: efficiency
+        - metric: efficient_routability
+default_candidate_config:
+  network:
+    node_count: 100
+    density: .1
+  routing:
+    strategy: optimised
+    propagation:
+      strategy: alternate
+      random:
+        cutoff_rate: 0.6
+      shortest:
+
+
+candidates:
+  random00:
+    routing:
+      propagation:
+        random_ratio: 0.0
+  random02:
+    routing:
+      propagation:
+        random_ratio: 0.2
+  random04:
+    routing:
+      propagation:
+        random_ratio: 0.4
+  random06:
+    routing:
+      propagation:
+        random_ratio: 0.6
+  random08:
+    routing:
+      propagation:
+        random_ratio: 0.8
+  random10:
+    routing:
+      propagation:
+        random_ratio: 1.0
