@@ -5,7 +5,6 @@ import experimentation
 import instrumentation
 from . import net, routing, strategies, graphs
 from .metering import _create_metrics_calculator
-from .routing import RouterFactory
 
 CostGenerator = Callable[[random.Random, int, int], tuple[float, float]]
 
@@ -13,25 +12,21 @@ CostGenerator = Callable[[random.Random, int, int], tuple[float, float]]
 class RoutingCandidate(experimentation.Candidate):
     def __init__(
             self,
-            router_factory: RouterFactory,
-            tracker: instrumentation.Tracker,
+            routers: list[routing.Router],
             measurement_reader: instrumentation.MeasurementReader,
             network: net.Network
     ):
         self.measurement_reader = measurement_reader
         self.network = network
-        self.router_factory = router_factory
-        self.routers: list[routing.Router] = [
-            self.router_factory.create_router(adapter, node_id, tracker)
-            for node_id, adapter in enumerate(self.network.adapters)
-        ]
+        self.routers = routers
 
     def run_step(self):
         for router in self.routers:
             router.tick()
 
     def scrape_metrics(self, metrics: list[str]) -> dict[str, float]:
-        metrics_calculator = _create_metrics_calculator(self.network, self.routers, self.measurement_reader)
+        measurement_session = self.measurement_reader.session()
+        metrics_calculator = _create_metrics_calculator(self.network, self.routers, measurement_session)
         return metrics_calculator.scrape(metrics)
 
 
@@ -105,9 +100,14 @@ def _create_router_factory(strategy_config):
 
 def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
     tracker, measurement_reader = instrumentation.setup()
+    router_factory = _create_router_factory(config["routing"])
+    network = generate_network(config["network"], rnd, tracker)
+    routers = [
+        router_factory.create_router(adapter, node_id, tracker)
+        for node_id, adapter in enumerate(network.adapters)
+    ]
     return RoutingCandidate(
-        router_factory=_create_router_factory(config["routing"]),
-        tracker=tracker,
+        routers=routers,
         measurement_reader=measurement_reader,
-        network=generate_network(config["network"], rnd, tracker),
+        network=network,
     )

@@ -7,10 +7,13 @@ from routing_experiment.routing import Route
 
 
 class MetricsCalculator:
-    def __init__(self, network: net.Network, routers: list[routing.Router],
-                 measurement_reader: instrumentation.MeasurementReader,
-                 graph: CostGraph):
-        self.measurement_session = measurement_reader.session()
+    def __init__(
+            self,
+            network: net.Network, routers: list[routing.Router],
+            graph: CostGraph,
+            measurement_session: instrumentation.Session,
+    ):
+        self.measurement_session = measurement_session
         self.network = network
         self.routers = routers
         self.graph = graph
@@ -102,10 +105,10 @@ def to_graph(network: net.Network) -> graphs.CostGraph:
     }
 
 
-def _create_metrics_calculator(network, routers, measurement_reader):
+def _create_metrics_calculator(network, routers, measurement_session: instrumentation.Session):
     return MetricsCalculator(
+        measurement_session=measurement_session,
         network=network,
         routers=routers,
-        measurement_reader=measurement_reader,
         graph=to_graph(network),
     )
