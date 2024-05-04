@@ -80,6 +80,9 @@ class MyTestCase(unittest.TestCase):
                 self.assertEqual(expected_cost, cost)
 
     def test_finding_shorter_path(self):
+        # This test reproduces a bug that occurred when inserting a route r to target x when the store already
+        # contains a route r' to target x that is prefixed by r.
+
         store = RouteStore(0, Mock(), MagicMock())
         store.nodes[0] = _Node()
         store.nodes[0].edges[1] = _Edge()
