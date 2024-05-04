@@ -231,7 +231,6 @@ class RouteStore:
                         self.nodes[v].distance = alt
         for node_id in list(self.nodes.keys()):
             if node_id != self.node_id and self.nodes[node_id].predecessor is None:
-                # TODO how can this even happen?
                 self._log(f"{node_id} has no pred. nodes: {self.nodes}")
                 del self.nodes[node_id]
 
@@ -385,8 +384,8 @@ class OptimisedRouterFactory(RouterFactory):
 
     def create_router(self, adapter: net.Adapter, node_id: NodeId, tracker: instrumentation.Tracker) -> Router:
         return OptimisedRouter(
-            adapter,
-            node_id,
+            adapter=adapter,
+            node_id=node_id,
             propagation_strategy=self.propagator,
             rnd=self.rnd,
             tracker=tracker,
