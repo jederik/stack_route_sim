@@ -7,6 +7,8 @@ from . import net, routing, strategies, graphs
 from .metering import _create_metrics_calculator
 from .routing import RouterFactory
 
+CostGenerator = Callable[[random.Random, int, int], tuple[float, float]]
+
 
 class RoutingCandidate(experimentation.Candidate):
     def __init__(
@@ -42,14 +44,12 @@ def cost_generator_uniform(rnd: random.Random, i: int, j: int) -> tuple[float, f
 
 
 def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracker):
-    cost_distribution = config["cost_distribution"] if "cost_distribution" in config else "same"
-    cost_generator: Callable[[random.Random, int, int], tuple[float, float]]
-    if cost_distribution == "same":
-        cost_generator = cost_generator_same
-    elif cost_distribution == "uniform":
-        cost_generator = cost_generator_uniform
-    else:
-        raise Exception(f"unknown cost distribution: {cost_distribution}")
+    cost_generator = _create_cost_generator(config)
+    graph = _generate_graph(config, rnd, cost_generator)
+    return _graph_to_network(graph, tracker)
+
+
+def _generate_graph(config, rnd, cost_generator: CostGenerator):
     strategy = config["strategy"] if "strategy" in config else "gilbert"
     if strategy == "gilbert":
         graph = graphs.generate_gilbert_graph(
@@ -67,8 +67,19 @@ def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracke
             cost_generator=lambda i, j: cost_generator(rnd, i, j),
         )
     else:
-        raise Exception(f"unknown network generation strategy: {strategy}")
-    return _graph_to_network(graph, tracker)
+        raise Exception(f"unknown graph generation strategy: {strategy}")
+    return graph
+
+
+def _create_cost_generator(config) -> CostGenerator:
+    cost_distribution = config["cost_distribution"] if "cost_distribution" in config else "same"
+    cost_generator: Callable[[random.Random, int, int], tuple[float, float]]
+    if cost_distribution == "same":
+        return cost_generator_same
+    elif cost_distribution == "uniform":
+        return cost_generator_uniform
+    else:
+        raise Exception(f"unknown cost distribution: {cost_distribution}")
 
 
 def _graph_to_network(graph: graphs.CostGraph, tracker: instrumentation.Tracker) -> net.Network:
