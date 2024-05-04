@@ -5,7 +5,7 @@
 ## Goals
 
 - investigate only propagating some nodes
-- investigate heterogenous demand for certain services
+- investigate heterogeneous demand for certain services
 - use same network for all candidates
 - run multiple rounds for each candidate
 - write README.md
