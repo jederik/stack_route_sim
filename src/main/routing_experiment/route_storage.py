@@ -100,7 +100,7 @@ class RouteStore:
     def has_route(self, target: NodeId) -> bool:
         return target in self.nodes
 
-    def _store_route(self, source: NodeId, target: NodeId, route: Route, cost: Cost) -> None:
+    def _store_route(self, source: NodeId, target: NodeId, route: Route, cost: Cost, modified_edges: list[tuple[NodeId, NodeId]]) -> None:
         if target == source:
             return
         if len(route) == 0:
@@ -112,7 +112,7 @@ class RouteStore:
             return
 
         # see if target lies on any existing edge
-        distance_modified_nodes: list[NodeId] = []
+        interjected = False
         successors = list(self.nodes[source].edges.keys())
         for successor in successors:
             edge = self.nodes[source].edges[successor]
@@ -150,8 +150,11 @@ class RouteStore:
                 if len(self.nodes[source].edges[successor].priced_routes) == 0:
                     del self.nodes[source].edges[successor]
 
-                distance_modified_nodes.append(successor)
-        if distance_modified_nodes:
+                modified_edges.append((source, target))
+                modified_edges.append((target, successor))
+                modified_edges.append((source, successor))
+                interjected = True
+        if interjected:
             return
 
         # find known node on the route
@@ -165,6 +168,7 @@ class RouteStore:
                         target=target,
                         route=route[len(edge_route.path):],
                         cost=cost - edge_route.cost,
+                        modified_edges=modified_edges,
                     )
                     return
 
@@ -173,43 +177,21 @@ class RouteStore:
                 self.nodes[target] = _Node()
             self.nodes[source].edges[target] = _Edge()
         self.nodes[source].edges[target].insert_path(route, cost)
+        modified_edges.append((source, target))
 
     def insert(self, target: NodeId, route: Route, cost: Cost):
         self.measurements.received_route_length.increase(len(route))
         self.measurements.route_insertion_count.increase(1)
-        old_edge_costs = self._summarise_edge_costs()
+        modified_edges: list[tuple[NodeId, NodeId]] = []
         with self.measurements.route_update_seconds_sum:
-            self._store_route(self.source, target, route, cost)
+            self._store_route(self.source, target, route, cost, modified_edges)
         with self.measurements.distance_update_seconds_sum:
-            self._update_distances(old_edge_costs)
+            self._update_distances(modified_edges)
 
-    def _modified_edges(self, old_edge_costs: _CostSummary) -> list[tuple[NodeId, NodeId]]:
-        result: list[tuple[NodeId, NodeId]] = []
-        new_edge_costs = self._summarise_edge_costs()
-        for head_id, edge_costs in new_edge_costs.items():
-            for tail_id, new_cost in edge_costs.items():
-                old_cost = (
-                    old_edge_costs[head_id][tail_id]
-                    if head_id in old_edge_costs and tail_id in old_edge_costs[head_id]
-                    else math.inf
-                )
-                if new_cost != old_cost:
-                    result.append((head_id, tail_id))
-        return result
-
-    def _summarise_edge_costs(self) -> _CostSummary:
-        return {
-            head_id: {
-                tail_id: edge.cost()
-                for tail_id, edge in head_node.edges.items()
-            }
-            for head_id, head_node in self.nodes.items()
-        }
-
-    def _update_distances(self, old_edge_costs: _CostSummary):
-        modified_edges = self._modified_edges(old_edge_costs)
+    def _update_distances(self, modified_edges: list[tuple[NodeId, NodeId]]):
         if len(modified_edges) == 0:
             return
+
         # Dijkstra:
         for i in self.nodes.keys():
             self.nodes[i].predecessor = None
