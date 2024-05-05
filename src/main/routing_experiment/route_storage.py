@@ -104,71 +104,69 @@ class RouteStore:
         if len(route) == 0:
             raise Exception(f"empty route. self: {self.source}, target: {target}")
 
-        if len(self.nodes) != 0:
+        # see if exact route is already present
+        for successor, edge in self.nodes[source].edges.items():
+            for priced_route in edge.priced_routes:
+                if priced_route.path == route:
+                    # TODO potentially update cost
+                    return []
 
-            # see if exact route is already present
-            for successor, edge in self.nodes[source].edges.items():
-                for priced_route in edge.priced_routes:
-                    if priced_route.path == route:
-                        # TODO potentially update cost
-                        return []
+        # see if target lies on any existing edge
+        distance_modified_nodes: list[NodeId] = []
+        successors = list(self.nodes[source].edges.keys())
+        for successor in successors:
+            edge = self.nodes[source].edges[successor]
+            prefixed_edge_routes = [
+                edge_route for edge_route in edge.priced_routes if is_real_prefix(route, edge_route.path)
+            ]
+            non_prefixed_edge_routes = [
+                edge_route for edge_route in edge.priced_routes if not is_real_prefix(route, edge_route.path)
+            ]
+            if len(prefixed_edge_routes) != 0:
 
-            # see if target lies on any existing edge
-            distance_modified_nodes: list[NodeId] = []
-            successors = list(self.nodes[source].edges.keys())
-            for successor in successors:
-                edge = self.nodes[source].edges[successor]
-                prefixed_edge_routes = [
-                    edge_route for edge_route in edge.priced_routes if is_real_prefix(route, edge_route.path)
-                ]
-                non_prefixed_edge_routes = [
-                    edge_route for edge_route in edge.priced_routes if not is_real_prefix(route, edge_route.path)
-                ]
-                if len(prefixed_edge_routes) != 0:
+                if target not in self.nodes:
+                    self.nodes[target] = _Node()
 
-                    if target not in self.nodes:
-                        self.nodes[target] = _Node()
+                # insert path between source and target
+                if target not in self.nodes[source].edges:
+                    self.nodes[source].edges[target] = _Edge()
+                self.nodes[source].edges[target].insert_path(route, cost)
 
-                    # insert path between source and target
-                    if target not in self.nodes[source].edges:
-                        self.nodes[source].edges[target] = _Edge()
-                    self.nodes[source].edges[target].insert_path(route, cost)
+                # add paths between target and successor
+                for prefixed_edge_route in prefixed_edge_routes:
+                    remaining_route = prefixed_edge_route.path[len(route):]
+                    if len(remaining_route) == 0:
+                        raise Exception("empty remainder")
+                    remaining_cost = prefixed_edge_route.cost - cost
+                    if successor not in self.nodes[target].edges:
+                        self.nodes[target].edges[successor] = _Edge()
+                    self.nodes[target].edges[successor].insert_path(remaining_route, remaining_cost)
 
-                    # add paths between target and successor
-                    for prefixed_edge_route in prefixed_edge_routes:
-                        remaining_route = prefixed_edge_route.path[len(route):]
-                        if len(remaining_route) == 0:
-                            raise Exception("empty remainder")
-                        remaining_cost = prefixed_edge_route.cost - cost
-                        if successor not in self.nodes[target].edges:
-                            self.nodes[target].edges[successor] = _Edge()
-                        self.nodes[target].edges[successor].insert_path(remaining_route, remaining_cost)
+                # remove replaced paths between source and successor
+                self.nodes[source].edges[successor].update_paths(non_prefixed_edge_routes)
+                if successor == target:
+                    self.nodes[source].edges[successor].insert_path(route, cost)
+                    # (we might get isolated nodes otherwise)
+                if len(self.nodes[source].edges[successor].priced_routes) == 0:
+                    del self.nodes[source].edges[successor]
 
-                    # remove replaced paths between source and successor
-                    self.nodes[source].edges[successor].update_paths(non_prefixed_edge_routes)
-                    if successor == target:
-                        self.nodes[source].edges[successor].insert_path(route, cost)
-                        # (we might get isolated nodes otherwise)
-                    if len(self.nodes[source].edges[successor].priced_routes) == 0:
-                        del self.nodes[source].edges[successor]
+                distance_modified_nodes.append(successor)
+        if distance_modified_nodes:
+            return [target]
 
-                    distance_modified_nodes.append(successor)
-            if distance_modified_nodes:
-                return [target]
-
-            # find known node on the route
-            for successor, edge in self.nodes[source].edges.items():
-                for edge_route in edge.priced_routes:
-                    if len(edge_route.path) == 0:
-                        raise Exception("empty segment")
-                    if is_real_prefix(edge_route.path, route):
-                        distance_modified_nodes = self._store_route(
-                            source=successor,
-                            target=target,
-                            route=route[len(edge_route.path):],
-                            cost=cost - edge_route.cost,
-                        )
-                        return [successor] + distance_modified_nodes
+        # find known node on the route
+        for successor, edge in self.nodes[source].edges.items():
+            for edge_route in edge.priced_routes:
+                if len(edge_route.path) == 0:
+                    raise Exception("empty segment")
+                if is_real_prefix(edge_route.path, route):
+                    distance_modified_nodes = self._store_route(
+                        source=successor,
+                        target=target,
+                        route=route[len(edge_route.path):],
+                        cost=cost - edge_route.cost,
+                    )
+                    return [successor] + distance_modified_nodes
 
         if target not in self.nodes[source].edges:
             if target not in self.nodes:
@@ -205,9 +203,6 @@ class RouteStore:
                     if alt < self.nodes[v].distance:
                         self.nodes[v].predecessor = u
                         self.nodes[v].distance = alt
-
-    def _log(self, msg):
-        self.logger.log(msg)
 
 
 class _Measurements:
