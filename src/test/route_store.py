@@ -5,7 +5,7 @@ from unittest.mock import Mock, MagicMock
 
 from routing_experiment.net import Network, NodeId, Cost
 from routing_experiment.routing import Route
-from routing_experiment.strategies.optimised import RouteStore, _Node, _Edge, PricedRoute
+from routing_experiment.route_storage import PricedRoute, _Edge, _Node, RouteStore
 
 from routing_experiment.setup import generate_network
 
@@ -31,17 +31,17 @@ def _random_walk(network: Network, source: NodeId, rnd: random.Random) -> tuple[
 
 class MyTestCase(unittest.TestCase):
     def test_self_route(self):
-        store = RouteStore(1, Mock(), Mock())
+        store = RouteStore(1, Mock())
         self.assertEqual([], store.shortest_route(1).path)  # add assertion here
 
     def test_insertion(self):
-        store = RouteStore(1, Mock(), MagicMock())
+        store = RouteStore(1, MagicMock())
         route = [1, 2, 3, 4]
         store.insert(2, route, 4)
         self.assertEqual(route, store.shortest_route(2).path)
 
     def test_combined_routes(self):
-        store = RouteStore(1, Mock(), MagicMock())
+        store = RouteStore(1, MagicMock())
         store.insert(3, [1, 2, 4], 3)
         store.insert(2, [1, 2], 2)
         store.insert(2, [3], 1)
@@ -59,7 +59,7 @@ class MyTestCase(unittest.TestCase):
                 tracker=Mock(),
             )
             source = int(rnd.random() * len(network.nodes))
-            store = RouteStore(source, rnd, MagicMock())
+            store = RouteStore(source, MagicMock())
             for _ in range(10):
                 target, route, cost = _random_walk(network, source, rnd)
                 store.insert(target, route, cost)
@@ -83,7 +83,7 @@ class MyTestCase(unittest.TestCase):
         # This test reproduces a bug that occurred when inserting a route r to target x when the store already
         # contains a route r' to target x that is prefixed by r.
 
-        store = RouteStore(0, Mock(), MagicMock())
+        store = RouteStore(0, MagicMock())
         store.nodes[0] = _Node()
         store.nodes[0].edges[1] = _Edge()
         store.nodes[0].edges[1].insert_path([1, 2], 10)

@@ -1,6 +1,7 @@
 ## Tasks
 
-- factor out route store
+- make route store node ID agnostic
+- structure insert_route into sub methods
 - introduce routing strategy with
   - forwarding layer
   - registerable actors, each actor being able to
