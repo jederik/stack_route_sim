@@ -8,6 +8,8 @@ from .net import Cost, NodeId
 from .routing import Route
 import logging
 
+_CostSummary = dict[NodeId, dict[NodeId, Cost]]
+
 
 def is_real_prefix(short: Route, long: Route) -> bool:
     return len(short) != len(long) and short == long[:len(short)]
@@ -98,16 +100,16 @@ class RouteStore:
     def has_route(self, target: NodeId) -> bool:
         return target in self.nodes
 
-    def _store_route(self, source: NodeId, target: NodeId, route: Route, cost: Cost) -> list[NodeId]:
+    def _store_route(self, source: NodeId, target: NodeId, route: Route, cost: Cost) -> None:
         if target == source:
-            return []
+            return
         if len(route) == 0:
             raise Exception(f"empty route. self: {self.source}, target: {target}")
 
         # see if exact route is already present
         if self._route_exists(source, route):
             # TODO potentially update cost
-            return []
+            return
 
         # see if target lies on any existing edge
         distance_modified_nodes: list[NodeId] = []
@@ -150,7 +152,7 @@ class RouteStore:
 
                 distance_modified_nodes.append(successor)
         if distance_modified_nodes:
-            return [target]
+            return
 
         # find known node on the route
         for successor, edge in self.nodes[source].edges.items():
@@ -158,31 +160,55 @@ class RouteStore:
                 if len(edge_route.path) == 0:
                     raise Exception("empty segment")
                 if is_real_prefix(edge_route.path, route):
-                    distance_modified_nodes = self._store_route(
+                    self._store_route(
                         source=successor,
                         target=target,
                         route=route[len(edge_route.path):],
                         cost=cost - edge_route.cost,
                     )
-                    return [successor] + distance_modified_nodes
+                    return
 
         if target not in self.nodes[source].edges:
             if target not in self.nodes:
                 self.nodes[target] = _Node()
             self.nodes[source].edges[target] = _Edge()
         self.nodes[source].edges[target].insert_path(route, cost)
-        return [target]
 
     def insert(self, target: NodeId, route: Route, cost: Cost):
         self.measurements.received_route_length.increase(len(route))
         self.measurements.route_insertion_count.increase(1)
+        old_edge_costs = self._summarise_edge_costs()
         with self.measurements.route_update_seconds_sum:
-            distance_modified_nodes = self._store_route(self.source, target, route, cost)
+            self._store_route(self.source, target, route, cost)
         with self.measurements.distance_update_seconds_sum:
-            self._update_distances(distance_modified_nodes)
+            self._update_distances(old_edge_costs)
 
-    def _update_distances(self, distance_modified_nodes: list[NodeId]):
-        if len(distance_modified_nodes) == 0:
+    def _modified_edges(self, old_edge_costs: _CostSummary) -> list[tuple[NodeId, NodeId]]:
+        result: list[tuple[NodeId, NodeId]] = []
+        new_edge_costs = self._summarise_edge_costs()
+        for head_id, edge_costs in new_edge_costs.items():
+            for tail_id, new_cost in edge_costs.items():
+                old_cost = (
+                    old_edge_costs[head_id][tail_id]
+                    if head_id in old_edge_costs and tail_id in old_edge_costs[head_id]
+                    else math.inf
+                )
+                if new_cost != old_cost:
+                    result.append((head_id, tail_id))
+        return result
+
+    def _summarise_edge_costs(self) -> _CostSummary:
+        return {
+            head_id: {
+                tail_id: edge.cost()
+                for tail_id, edge in head_node.edges.items()
+            }
+            for head_id, head_node in self.nodes.items()
+        }
+
+    def _update_distances(self, old_edge_costs: _CostSummary):
+        modified_edges = self._modified_edges(old_edge_costs)
+        if len(modified_edges) == 0:
             return
         # Dijkstra:
         for i in self.nodes.keys():
