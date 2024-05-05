@@ -100,7 +100,8 @@ class RouteStore:
     def has_route(self, target: NodeId) -> bool:
         return target in self.nodes
 
-    def _store_route(self, source: NodeId, target: NodeId, route: Route, cost: Cost, modified_edges: list[tuple[NodeId, NodeId]]) -> None:
+    def _store_route(self, source: NodeId, target: NodeId, route: Route, cost: Cost,
+                     modified_edges: list[tuple[NodeId, NodeId]]) -> None:
         if target == source:
             return
         if len(route) == 0:
@@ -111,57 +112,9 @@ class RouteStore:
             # TODO potentially update cost
             return
 
-        # see if target lies on any existing edge
-        interjected = False
-        successors = list(self.nodes[source].edges.keys())
-        for successor in successors:
-            edge = self.nodes[source].edges[successor]
-            prefixed_edge_routes = [
-                edge_route for edge_route in edge.priced_routes if is_real_prefix(route, edge_route.path)
-            ]
-            non_prefixed_edge_routes = [
-                edge_route for edge_route in edge.priced_routes if not is_real_prefix(route, edge_route.path)
-            ]
-            if len(prefixed_edge_routes) != 0:
-
-                if target not in self.nodes:
-                    self.nodes[target] = _Node()
-
-                # insert path between source and target
-                if target not in self.nodes[source].edges:
-                    self.nodes[source].edges[target] = _Edge()
-                self.nodes[source].edges[target].insert_path(route, cost)
-
-                # add paths between target and successor
-                for prefixed_edge_route in prefixed_edge_routes:
-                    remaining_route = prefixed_edge_route.path[len(route):]
-                    if len(remaining_route) == 0:
-                        raise Exception("empty remainder")
-                    remaining_cost = prefixed_edge_route.cost - cost
-                    if successor not in self.nodes[target].edges:
-                        self.nodes[target].edges[successor] = _Edge()
-                    self.nodes[target].edges[successor].insert_path(remaining_route, remaining_cost)
-
-                # remove replaced paths between source and successor
-                self.nodes[source].edges[successor].update_paths(non_prefixed_edge_routes)
-                if successor == target:
-                    self.nodes[source].edges[successor].insert_path(route, cost)
-                    # (we might get isolated nodes otherwise)
-                if len(self.nodes[source].edges[successor].priced_routes) == 0:
-                    del self.nodes[source].edges[successor]
-
-                modified_edges.append((source, target))
-                modified_edges.append((target, successor))
-                modified_edges.append((source, successor))
-                interjected = True
-        if interjected:
-            return
-
         # find known node on the route
         for successor, edge in self.nodes[source].edges.items():
             for edge_route in edge.priced_routes:
-                if len(edge_route.path) == 0:
-                    raise Exception("empty segment")
                 if is_real_prefix(edge_route.path, route):
                     self._store_route(
                         source=successor,
@@ -172,12 +125,64 @@ class RouteStore:
                     )
                     return
 
+        # insert path between source and target
         if target not in self.nodes[source].edges:
             if target not in self.nodes:
                 self.nodes[target] = _Node()
             self.nodes[source].edges[target] = _Edge()
         self.nodes[source].edges[target].insert_path(route, cost)
         modified_edges.append((source, target))
+
+        # redirect prefixed routes via target
+        successors = list(self.nodes[source].edges.keys())
+        for successor in successors:
+            self._redirect_prefixed_segments(source, successor, target, route, cost, modified_edges)
+
+    def _redirect_prefixed_segments(
+            self,
+            source: NodeId,
+            successor: NodeId,
+            target: NodeId,
+            route: Route,
+            cost: Cost,
+            modified_edges: list[tuple[NodeId, NodeId]]
+    ):
+        non_prefixed_edge_routes, prefixed_edge_routes = self._find_prefixed_segments(route, source, successor)
+
+        if not any(prefixed_edge_routes):
+            return False
+
+        if target not in self.nodes:
+            self.nodes[target] = _Node()
+
+        # remove prefixed segments between source and successor
+        self.nodes[source].edges[successor].update_paths(non_prefixed_edge_routes)
+        if len(self.nodes[source].edges[successor].priced_routes) == 0:
+            del self.nodes[source].edges[successor]
+        modified_edges.append((source, successor))
+
+        # add segments between target and successor
+        for prefixed_edge_route in prefixed_edge_routes:
+            remaining_route = prefixed_edge_route.path[len(route):]
+            if len(remaining_route) == 0:
+                raise Exception("empty remainder")
+            remaining_cost = prefixed_edge_route.cost - cost
+            if successor not in self.nodes[target].edges:
+                self.nodes[target].edges[successor] = _Edge()
+            self.nodes[target].edges[successor].insert_path(remaining_route, remaining_cost)
+        modified_edges.append((target, successor))
+
+        return True
+
+    def _find_prefixed_segments(self, route, source, successor):
+        edge = self.nodes[source].edges[successor]
+        prefixed_edge_routes = [
+            edge_route for edge_route in edge.priced_routes if is_real_prefix(route, edge_route.path)
+        ]
+        non_prefixed_edge_routes = [
+            edge_route for edge_route in edge.priced_routes if not is_real_prefix(route, edge_route.path)
+        ]
+        return non_prefixed_edge_routes, prefixed_edge_routes
 
     def insert(self, target: NodeId, route: Route, cost: Cost):
         self.measurements.received_route_length.increase(len(route))
