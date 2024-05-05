@@ -41,7 +41,7 @@ class OptimisedRouter(Router, net.Adapter.Handler):
         self.eliminate_cycles = eliminate_cycles
         self.node_id = node_id
         self.adapter = adapter
-        self.store = RouteStore(node_id, tracker)
+        self.store = RouteStore(node_id, tracker, self.logger)
         self._propagation_strategy = propagation_strategy
         adapter.register_handler(self)
 
