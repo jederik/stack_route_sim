@@ -60,32 +60,32 @@ class _Node:
 class RouteStore:
     def __init__(
             self,
-            node_id: NodeId,
+            source: NodeId,
             tracker: Optional[instrumentation.Tracker],
             logger: logging.Logger,
     ):
         self.logger = logger
         self.measurements = _Measurements(tracker)
-        self.node_id = node_id
+        self.source = source
         self.nodes: dict[NodeId, _Node] = {
-            node_id: _Node(
+            source: _Node(
                 distance=0,
                 predecessor=None,
             )
         }
 
     def shortest_route(self, target: NodeId) -> Optional[PricedRoute]:
-        if target == self.node_id:
+        if target == self.source:
             return PricedRoute([], 0)
         if target not in self.nodes:
             return None
         pred = self.nodes[target].predecessor
         if pred is None:
-            raise Exception(f"node {self.node_id}: {target} has no predecessor")
+            raise Exception(f"node {self.source}: {target} has no predecessor")
         if pred not in self.nodes:
-            raise Exception(f"node {self.node_id}: {pred} is best predecessor of {target} but has no outgoing edges")
+            raise Exception(f"node {self.source}: {pred} is best predecessor of {target} but has no outgoing edges")
         if target not in self.nodes[pred].edges:
-            raise Exception(f"node {self.node_id}: {pred} is best predecessor of {target} but has no edge to it")
+            raise Exception(f"node {self.source}: {pred} is best predecessor of {target} but has no edge to it")
         pred_route = self.shortest_route(pred)
         if pred_route is None:
             return None
@@ -102,7 +102,7 @@ class RouteStore:
         if target == source:
             return []
         if len(route) == 0:
-            raise Exception(f"empty route. self: {self.node_id}, target: {target}")
+            raise Exception(f"empty route. self: {self.source}, target: {target}")
 
         if len(self.nodes) != 0:
 
@@ -181,7 +181,7 @@ class RouteStore:
         self.measurements.received_route_length.increase(len(route))
         self.measurements.route_insertion_count.increase(1)
         with self.measurements.route_update_seconds_sum:
-            distance_modified_nodes = self._store_route(self.node_id, target, route, cost)
+            distance_modified_nodes = self._store_route(self.source, target, route, cost)
         with self.measurements.distance_update_seconds_sum:
             self._update_distances(distance_modified_nodes)
 
@@ -192,7 +192,7 @@ class RouteStore:
         for i in self.nodes.keys():
             self.nodes[i].predecessor = None
             self.nodes[i].distance = math.inf
-        self.nodes[self.node_id].distance = 0
+        self.nodes[self.source].distance = 0
         queue: list[NodeId] = list(self.nodes.keys())
         explored: set[NodeId] = set()
         while len(queue) != 0:

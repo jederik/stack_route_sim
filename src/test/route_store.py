@@ -4,9 +4,8 @@ import unittest
 from unittest.mock import Mock, MagicMock
 
 from routing_experiment.net import Network, NodeId, Cost
+from routing_experiment.route_storage import _Edge, _Node, RouteStore
 from routing_experiment.routing import Route
-from routing_experiment.route_storage import PricedRoute, _Edge, _Node, RouteStore
-
 from routing_experiment.setup import generate_network
 
 T = typing.TypeVar('T')

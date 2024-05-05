@@ -91,7 +91,7 @@ class RandomRoutePropagator(Propagator):
 
     def _get_random_route(self, store: RouteStore, source: NodeId = None) -> tuple[NodeId, Route, Cost]:
         if source is None:
-            source = store.node_id
+            source = store.source
         if len(store.nodes[source].edges) == 0:
             return source, [], 0
         if self.cutoff_rate > self.rnd.random():
