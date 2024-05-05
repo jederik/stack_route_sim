@@ -1,12 +1,12 @@
 import bisect
 import math
-import sys
 from typing import Optional
 
 import instrumentation
 from . import measurements
 from .net import Cost, NodeId
 from .routing import Route
+import logging
 
 
 def is_real_prefix(short: Route, long: Route) -> bool:
@@ -62,7 +62,9 @@ class RouteStore:
             self,
             node_id: NodeId,
             tracker: Optional[instrumentation.Tracker],
+            logger: logging.Logger,
     ):
+        self.logger = logger
         self.measurements = _Measurements(tracker)
         self.node_id = node_id
         self.nodes: dict[NodeId, _Node] = {
@@ -203,13 +205,9 @@ class RouteStore:
                     if alt < self.nodes[v].distance:
                         self.nodes[v].predecessor = u
                         self.nodes[v].distance = alt
-        for node_id in list(self.nodes.keys()):
-            if node_id != self.node_id and self.nodes[node_id].predecessor is None:
-                self._log(f"{node_id} has no pred. nodes: {self.nodes}")
-                del self.nodes[node_id]
 
     def _log(self, msg):
-        print(f"{self.node_id}: {str(msg)}", file=sys.stderr)
+        self.logger.log(msg)
 
 
 class _Measurements:

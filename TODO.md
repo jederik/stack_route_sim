@@ -1,6 +1,5 @@
 ## Tasks
 
-- make route store node ID agnostic
 - structure insert_route into sub methods
 - introduce routing strategy with
   - forwarding layer

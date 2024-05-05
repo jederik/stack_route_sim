@@ -2,6 +2,7 @@ import random
 from typing import Optional, TypeVar
 
 import instrumentation
+import logging
 from .. import net
 from ..net import NodeId, PortNumber, Cost
 from ..route_storage import RouteStore
@@ -36,6 +37,7 @@ class OptimisedRouter(Router, net.Adapter.Handler):
             tracker: instrumentation.Tracker,
             eliminate_cycles: bool,
     ):
+        self.logger = logging.getLogger(name=f"node {node_id}")
         self.eliminate_cycles = eliminate_cycles
         self.node_id = node_id
         self.adapter = adapter

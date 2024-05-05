@@ -31,17 +31,17 @@ def _random_walk(network: Network, source: NodeId, rnd: random.Random) -> tuple[
 
 class MyTestCase(unittest.TestCase):
     def test_self_route(self):
-        store = RouteStore(1, Mock())
+        store = RouteStore(1, MagicMock(), Mock())
         self.assertEqual([], store.shortest_route(1).path)  # add assertion here
 
     def test_insertion(self):
-        store = RouteStore(1, MagicMock())
+        store = RouteStore(1, MagicMock(), Mock())
         route = [1, 2, 3, 4]
         store.insert(2, route, 4)
         self.assertEqual(route, store.shortest_route(2).path)
 
     def test_combined_routes(self):
-        store = RouteStore(1, MagicMock())
+        store = RouteStore(1, MagicMock(), Mock())
         store.insert(3, [1, 2, 4], 3)
         store.insert(2, [1, 2], 2)
         store.insert(2, [3], 1)
@@ -59,7 +59,7 @@ class MyTestCase(unittest.TestCase):
                 tracker=Mock(),
             )
             source = int(rnd.random() * len(network.nodes))
-            store = RouteStore(source, MagicMock())
+            store = RouteStore(source, MagicMock(), Mock())
             for _ in range(10):
                 target, route, cost = _random_walk(network, source, rnd)
                 store.insert(target, route, cost)
@@ -81,9 +81,9 @@ class MyTestCase(unittest.TestCase):
 
     def test_finding_shorter_path(self):
         # This test reproduces a bug that occurred when inserting a route r to target x when the store already
-        # contains a route r' to target x that is prefixed by r.
+        # contains a route r2 to target x that is prefixed by r.
 
-        store = RouteStore(0, MagicMock())
+        store = RouteStore(0, MagicMock(), Mock())
         store.nodes[0] = _Node()
         store.nodes[0].edges[1] = _Edge()
         store.nodes[0].edges[1].insert_path([1, 2], 10)
