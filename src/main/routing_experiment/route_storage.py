@@ -105,11 +105,9 @@ class RouteStore:
             raise Exception(f"empty route. self: {self.source}, target: {target}")
 
         # see if exact route is already present
-        for successor, edge in self.nodes[source].edges.items():
-            for priced_route in edge.priced_routes:
-                if priced_route.path == route:
-                    # TODO potentially update cost
-                    return []
+        if self._route_exists(source, route):
+            # TODO potentially update cost
+            return []
 
         # see if target lies on any existing edge
         distance_modified_nodes: list[NodeId] = []
@@ -203,6 +201,13 @@ class RouteStore:
                     if alt < self.nodes[v].distance:
                         self.nodes[v].predecessor = u
                         self.nodes[v].distance = alt
+
+    def _route_exists(self, source: NodeId, route: Route) -> bool:
+        for successor, edge in self.nodes[source].edges.items():
+            for priced_route in edge.priced_routes:
+                if priced_route.path == route:
+                    return True
+        return False
 
 
 class _Measurements:
