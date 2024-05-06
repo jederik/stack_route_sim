@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import Mock, MagicMock
 
 from routing_experiment.net import Network, NodeId, Cost
-from routing_experiment.route_storage import _Edge, _Node, RouteStore
+from routing_experiment.route_storage import _Edge, _Node, RouteStore, PricedRoute
 from routing_experiment.routing import Route
 from routing_experiment.setup import generate_network
 
@@ -97,6 +97,59 @@ class MyTestCase(unittest.TestCase):
         self.assertTrue(1 in store.nodes[0].edges)
         self.assertTrue(len(store.nodes[0].edges[1].priced_routes) != 0)
         self.assertIsNotNone(store.nodes[1].predecessor)
+
+    def test_insert_existing_route(self):
+        store = RouteStore(0, MagicMock(), Mock())
+        store.insert(1, [1], 1)
+        store.insert(1, [1], 1)
+
+        self.assertEqual(2, len(store.nodes))
+        self.assertEqual(1, len(store.nodes[0].edges))
+        self.assertEqual(1, len(store.nodes[0].edges[1].priced_routes))
+        self.assertEqual([1], store.nodes[0].edges[1].priced_routes[0].path)
+        self.assertEqual(1, store.nodes[0].edges[1].priced_routes[0].cost)
+        self.assertEqual(0, len(store.nodes[1].edges))
+
+    def test_insert_existing_two_hop_route(self):
+        store = RouteStore(0, MagicMock(), Mock())
+        store.insert(1, [1], 1)
+        store.insert(2, [1, 2], 3)
+        store.insert(2, [1, 2], 3)
+
+        self.assertEqual(3, len(store.nodes))
+        self.assertEqual(1, len(store.nodes[0].edges))
+        self.assertEqual(1, len(store.nodes[0].edges[1].priced_routes))
+        self.assertEqual([1], store.nodes[0].edges[1].priced_routes[0].path)
+        self.assertEqual(1, store.nodes[0].edges[1].priced_routes[0].cost)
+        self.assertEqual(1, len(store.nodes[1].edges))
+        self.assertEqual(1, len(store.nodes[1].edges[2].priced_routes))
+        self.assertEqual([2], store.nodes[1].edges[2].priced_routes[0].path)
+        self.assertEqual(2, store.nodes[1].edges[2].priced_routes[0].cost)
+        self.assertEqual(0, len(store.nodes[2].edges))
+
+    def test_insert_redirect(self):
+        store = RouteStore(0, MagicMock(), Mock())
+        store.nodes[0].edges[2] = _Edge()
+        store.nodes[0].edges[2].priced_routes = [
+            PricedRoute(path=[1, 2], cost=3),
+            PricedRoute(path=[1, 3], cost=4),
+        ]
+        store.nodes[2] = _Node()
+
+        store.insert(target=1, route=[1], cost=1)
+
+        self.assertEqual(3, len(store.nodes))
+        self.assertEqual(1, len(store.nodes[0].edges))
+        self.assertEqual(1, len(store.nodes[0].edges[1].priced_routes))
+        self.assertEqual([1], store.nodes[0].edges[1].priced_routes[0].path)
+        self.assertEqual(1, store.nodes[0].edges[1].priced_routes[0].cost)
+        self.assertEqual(1, len(store.nodes[1].edges))
+        self.assertEqual(2, len(store.nodes[1].edges[2].priced_routes))
+        self.assertEqual([2], store.nodes[1].edges[2].priced_routes[0].path)
+        self.assertEqual(2, store.nodes[1].edges[2].priced_routes[0].cost)
+        self.assertEqual([3], store.nodes[1].edges[2].priced_routes[1].path)
+        self.assertEqual(3, store.nodes[1].edges[2].priced_routes[1].cost)
+        self.assertEqual(0, len(store.nodes[2].edges))
 
 
 if __name__ == '__main__':
