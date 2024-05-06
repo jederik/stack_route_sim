@@ -12,7 +12,11 @@ _CostSummary = dict[NodeId, dict[NodeId, Cost]]
 
 
 def is_real_prefix(short: Route, long: Route) -> bool:
-    return len(short) != len(long) and short == long[:len(short)]
+    return len(short) < len(long) and is_prefix(short, long)
+
+
+def is_prefix(short: Route, long: Route) -> bool:
+    return short == long[:len(short)]
 
 
 class PricedRoute:
@@ -105,17 +109,14 @@ class RouteStore:
         if target == source:
             return
         if len(route) == 0:
-            raise Exception(f"empty route. self: {self.source}, target: {target}")
-
-        # see if exact route is already present
-        if self._route_exists(source, route):
-            # TODO potentially update cost
-            return
+            if target != source:
+                raise Exception("route target contradiction")
+            # TODO back propagate new costs
 
         # find known node on the route
         for successor, edge in self.nodes[source].edges.items():
             for edge_route in edge.priced_routes:
-                if is_real_prefix(edge_route.path, route):
+                if is_prefix(edge_route.path, route):
                     self._store_route(
                         source=successor,
                         target=target,

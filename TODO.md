@@ -1,6 +1,5 @@
 ## Tasks
 
-- structure insert_route into sub methods
 - introduce routing strategy with
   - forwarding layer
   - registerable actors, each actor being able to
