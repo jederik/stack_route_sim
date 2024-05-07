@@ -3,7 +3,7 @@ from typing import Optional, TypeVar
 
 import instrumentation
 import logging
-from .. import net
+from .. import net, route_storage
 from ..net import NodeId, PortNumber, Cost
 from ..route_storage import RouteStore
 from ..routing import Router, Route, RouterFactory
@@ -34,14 +34,13 @@ class OptimisedRouter(Router):
             adapter: net.Adapter,
             node_id: NodeId,
             propagation_strategy: Propagator,
-            tracker: instrumentation.Tracker,
-            eliminate_cycles: bool,
-            eliminate_cycles_eagerly: bool,
+            store: RouteStore,
+            logger: logging.Logger,
     ):
-        self.logger = logging.getLogger(name=f"node {node_id}")
+        self.logger = logger
         self.node_id = node_id
         self.adapter = adapter
-        self.store = RouteStore(node_id, tracker, self.logger, eliminate_cycles, eliminate_cycles_eagerly)
+        self.store = store
         self._propagation_strategy = propagation_strategy
 
     def route(self, target: NodeId) -> Optional[Route]:
@@ -157,17 +156,17 @@ def _create_propagator(config, rnd: random.Random) -> Propagator:
 
 class OptimisedRouterFactory(RouterFactory):
     def __init__(self, routing_config, rnd: random.Random):
-        self.eliminate_cycles_eagerly = False if "eliminate_cycles_eagerly" not in routing_config else routing_config["eliminate_cycles_eagerly"]
-        self.eliminate_cycles = False if "eliminate_cycles" not in routing_config else routing_config["eliminate_cycles"]
+        self.store_factory = route_storage.Factory(config=routing_config["store"] if "store" in routing_config else {})
         self.rnd = rnd
         self.propagator = _create_propagator(routing_config["propagation"], rnd)
 
     def create_router(self, adapter: net.Adapter, node_id: NodeId, tracker: instrumentation.Tracker) -> Router:
+        logger = logging.getLogger(name=f"node {node_id}")
+        store = self.store_factory.create_store(logger, node_id, tracker)
         return OptimisedRouter(
             adapter=adapter,
             node_id=node_id,
             propagation_strategy=self.propagator,
-            tracker=tracker,
-            eliminate_cycles=self.eliminate_cycles,
-            eliminate_cycles_eagerly=self.eliminate_cycles_eagerly,
+            store=store,
+            logger=logger,
         )
