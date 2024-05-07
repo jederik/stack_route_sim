@@ -38,10 +38,9 @@ class OptimisedRouter(Router):
             eliminate_cycles: bool,
     ):
         self.logger = logging.getLogger(name=f"node {node_id}")
-        self.eliminate_cycles = eliminate_cycles
         self.node_id = node_id
         self.adapter = adapter
-        self.store = RouteStore(node_id, tracker, self.logger)
+        self.store = RouteStore(node_id, tracker, self.logger, eliminate_cycles)
         self._propagation_strategy = propagation_strategy
 
     def route(self, target: NodeId) -> Optional[Route]:
@@ -58,8 +57,6 @@ class OptimisedRouter(Router):
         self._handle_propagation_message(message, port_num)
 
     def _handle_propagation_message(self, message: PropagationMessage, port_num: PortNumber):
-        if self.eliminate_cycles and message.target == self.node_id:
-            return
         self.store.insert(
             target=message.target,
             route=[port_num] + message.route,

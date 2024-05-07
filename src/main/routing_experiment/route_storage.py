@@ -69,7 +69,9 @@ class RouteStore:
             source: NodeId,
             tracker: Optional[instrumentation.Tracker],
             logger: logging.Logger,
+            eliminate_cycles: bool,
     ):
+        self.eliminate_cycles = eliminate_cycles
         self.logger = logger
         self.measurements = _Measurements(tracker)
         self.source = source
@@ -106,6 +108,8 @@ class RouteStore:
 
     def _store_route(self, source: NodeId, target: NodeId, route: Route, cost: Cost,
                      modified_edges: list[tuple[NodeId, NodeId]]) -> None:
+        if self.eliminate_cycles and target == self.source:
+            return
         if target == source:
             return
         if len(route) == 0:
