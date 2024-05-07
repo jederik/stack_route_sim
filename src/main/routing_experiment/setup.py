@@ -106,6 +106,8 @@ def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
         router_factory.create_router(adapter, node_id, tracker)
         for node_id, adapter in enumerate(network.adapters)
     ]
+    for router, adapter in zip(routers, network.adapters):
+        adapter.register_handler(router)
     return RoutingCandidate(
         routers=routers,
         measurement_reader=measurement_reader,

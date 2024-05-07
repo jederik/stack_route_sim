@@ -8,7 +8,7 @@ from .net import NodeId, PortNumber
 Route = list[PortNumber]
 
 
-class Router:
+class Router(net.Adapter.Handler):
     def tick(self) -> None:
         raise Exception("not implemented")
 

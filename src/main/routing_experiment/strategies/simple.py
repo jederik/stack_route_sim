@@ -10,7 +10,7 @@ _NodeRoutes = list[Route]
 _RouteStore = dict[NodeId, _NodeRoutes]
 
 
-class SimpleRouter(Router, net.Adapter.Handler):
+class SimpleRouter(Router):
     def __init__(
             self,
             adapter: net.Adapter,

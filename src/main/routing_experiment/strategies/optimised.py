@@ -28,7 +28,7 @@ class Propagator:
         raise Exception("not implemented")
 
 
-class OptimisedRouter(Router, net.Adapter.Handler):
+class OptimisedRouter(Router):
     def __init__(
             self,
             adapter: net.Adapter,
@@ -43,7 +43,6 @@ class OptimisedRouter(Router, net.Adapter.Handler):
         self.adapter = adapter
         self.store = RouteStore(node_id, tracker, self.logger)
         self._propagation_strategy = propagation_strategy
-        adapter.register_handler(self)
 
     def route(self, target: NodeId) -> Optional[Route]:
         priced_route = self.store.shortest_route(target)
