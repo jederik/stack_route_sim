@@ -241,3 +241,13 @@ class _Measurements:
         self.route_update_seconds_sum = tracker.get_timer(measurements.ROUTE_UPDATE_SECONDS_SUM)
         self.distance_update_seconds_sum = tracker.get_timer(measurements.DISTANCE_UPDATE_SECONDS_SUM)
         self.received_route_length = tracker.get_counter(measurements.RECEIVED_ROUTE_LENGTH)
+
+
+class Factory:
+    def __init__(self, config: dict[str]):
+        self.eliminate_cycles_eagerly = False if "eliminate_cycles_eagerly" not in config else config[
+            "eliminate_cycles_eagerly"]
+        self.eliminate_cycles = False if "eliminate_cycles" not in config else config["eliminate_cycles"]
+
+    def create_store(self, logger: logging.Logger, node_id: NodeId, tracker: instrumentation.Tracker):
+        return RouteStore(node_id, tracker, logger, self.eliminate_cycles, self.eliminate_cycles_eagerly)
