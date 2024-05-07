@@ -36,11 +36,12 @@ class OptimisedRouter(Router):
             propagation_strategy: Propagator,
             tracker: instrumentation.Tracker,
             eliminate_cycles: bool,
+            eliminate_cycles_eagerly: bool,
     ):
         self.logger = logging.getLogger(name=f"node {node_id}")
         self.node_id = node_id
         self.adapter = adapter
-        self.store = RouteStore(node_id, tracker, self.logger, eliminate_cycles)
+        self.store = RouteStore(node_id, tracker, self.logger, eliminate_cycles, eliminate_cycles_eagerly)
         self._propagation_strategy = propagation_strategy
 
     def route(self, target: NodeId) -> Optional[Route]:
@@ -156,6 +157,7 @@ def _create_propagator(config, rnd: random.Random) -> Propagator:
 
 class OptimisedRouterFactory(RouterFactory):
     def __init__(self, routing_config, rnd: random.Random):
+        self.eliminate_cycles_eagerly = False if "eliminate_cycles_eagerly" not in routing_config else routing_config["eliminate_cycles_eagerly"]
         self.eliminate_cycles = False if "eliminate_cycles" not in routing_config else routing_config["eliminate_cycles"]
         self.rnd = rnd
         self.propagator = _create_propagator(routing_config["propagation"], rnd)
@@ -167,4 +169,5 @@ class OptimisedRouterFactory(RouterFactory):
             propagation_strategy=self.propagator,
             tracker=tracker,
             eliminate_cycles=self.eliminate_cycles,
+            eliminate_cycles_eagerly=self.eliminate_cycles_eagerly,
         )
