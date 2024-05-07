@@ -89,6 +89,7 @@ def _graph_to_network(graph: graphs.CostGraph, tracker: instrumentation.Tracker)
 
 def _create_router_factory(strategy_config) -> routing.RouterFactory:
     strategy: str = strategy_config["strategy"]
+    constructor: Callable[[dict[str], random.Random], routing.RouterFactory]
     if strategy == "simple":
         constructor = strategies.simple.SimpleRouterFactory
     elif strategy == "optimised":
