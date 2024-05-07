@@ -58,7 +58,10 @@ class Session:
         return sum_delta / count_delta
 
     def _get_measurement_delta(self, name: str) -> float:
-        return self.after[name] - self.before[name]
+        try:
+            return self.after[name] - self.before[name]
+        except KeyError as e:
+            raise Exception(f"metric {name} not available")
 
 
 class MeasurementReader:
