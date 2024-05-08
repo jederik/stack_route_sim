@@ -5,15 +5,18 @@ plotting:
   groups:
     - x_metric: transmissions_per_node
       figures:
-        - metric: propagated_route_length
-        - metric: route_insertion_duration
-        - metric: distance_update_duration
+        - metric: routability_rate
+        - metric: efficiency
+        - metric: efficient_routability
 default_candidate_config:
   network:
     node_count: 100
     density: .1
   routing:
     strategy: optimised
+    propagation:
+      strategy: random_route
+      cutoff_rate: 0.6
 candidates:
   random:
     routing:
@@ -31,4 +34,12 @@ candidates:
         shortest:
         random:
           cutoff_rate: .1
-        random_ratio: 0.5
+        ratio: 0.5
+  roles:
+    routing:
+      strategy: roles
+      role_distribution:
+        server: 1
+        client: 1
+        helper: 3
+        forwarder: 5

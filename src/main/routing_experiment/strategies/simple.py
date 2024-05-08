@@ -1,5 +1,6 @@
 import random
 from typing import Callable, Optional
+from overrides import override
 
 import instrumentation
 from routing_experiment import net
@@ -10,7 +11,7 @@ _NodeRoutes = list[Route]
 _RouteStore = dict[NodeId, _NodeRoutes]
 
 
-class SimpleRouter(Router):
+class SimpleRouter(Router, net.Adapter.Handler):
     def __init__(
             self,
             adapter: net.Adapter,
@@ -25,13 +26,16 @@ class SimpleRouter(Router):
         self.adapter = adapter
         adapter.register_handler(self)
 
+    @override
     def has_route(self, target: NodeId) -> bool:
         return target in self.routes and len(self.routes[target]) != 0
 
+    @override
     def tick(self):
         for worker in self.workers:
             worker.execute()
 
+    @override
     def handle(self, port_num: PortNumber, message):
         prop: RoutePropagationMessage = message
         node_routes = self._get_node_routes(prop.node_id)
@@ -39,8 +43,13 @@ class SimpleRouter(Router):
         route.append(port_num)
         node_routes.append(route)
 
+    @override
     def route(self, target: NodeId) -> Optional[Route]:
         return _shortest_route(self.routes, target)
+
+    @override
+    def handler(self) -> net.Adapter.Handler:
+        return self
 
     def _get_node_routes(self, node_id: NodeId):
         if node_id in self.routes:

@@ -94,6 +94,8 @@ def _create_router_factory(strategy_config) -> routing.RouterFactory:
         constructor = strategies.simple.SimpleRouterFactory
     elif strategy == "optimised":
         constructor = strategies.optimised.OptimisedRouterFactory
+    elif strategy == "roles":
+        constructor = strategies.roles.RolesRouterFactory
     else:
         raise Exception(f"unknown routing strategy: {strategy}")
     return constructor(strategy_config, random.Random())
@@ -108,7 +110,7 @@ def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
         for node_id, adapter in enumerate(network.adapters)
     ]
     for router, adapter in zip(routers, network.adapters):
-        adapter.register_handler(router)
+        adapter.register_handler(router.handler())
     return RoutingCandidate(
         routers=routers,
         measurement_reader=measurement_reader,
