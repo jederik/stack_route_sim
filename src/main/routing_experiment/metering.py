@@ -1,21 +1,23 @@
 import instrumentation
 from experimentation.metering import MetricName
-from routing_experiment import net, routing, measurements, graphs
+from routing_experiment import net, measurements, graphs
 from routing_experiment.graphs import CostGraph
 from routing_experiment.net import NodeId, Cost
 from routing_experiment.routing import Route
+from routing_experiment.usage import User
 
 
 class MetricsCalculator:
     def __init__(
             self,
-            network: net.Network, routers: list[routing.Router],
+            network: net.Network,
+            users: list[User],
             graph: CostGraph,
             measurement_session: instrumentation.Session,
     ):
         self.measurement_session = measurement_session
         self.network = network
-        self.routers = routers
+        self.users = users
         self.graph = graph
 
     def _calculate_metric(self, name) -> float:
@@ -50,9 +52,9 @@ class MetricsCalculator:
     def routability_rate(self):
         routable_pairs = 0
         for i in range(len(self.network.nodes)):
-            router = self.routers[i]
+            user = self.users[i]
             for j in range(len(self.network.nodes)):
-                if router.has_route(j):
+                if user.router.has_route(j):
                     routable_pairs += 1
 
         reachable_pairs = 0
@@ -70,7 +72,7 @@ class MetricsCalculator:
         distances = graphs.distances(self.graph)
         for i in range(len(self.network.nodes)):
             for j in range(len(self.network.nodes)):
-                route = self.routers[i].route(j)
+                route = self.users[i].router.route(j)
                 if route is not None:
                     route_lengths += self.route_cost(i, route)
                     node_distances += distances[i][j]
@@ -105,10 +107,10 @@ def to_graph(network: net.Network) -> graphs.CostGraph:
     }
 
 
-def _create_metrics_calculator(network, routers, measurement_session: instrumentation.Session):
+def _create_metrics_calculator(network: net.Network, users: list[User], measurement_session: instrumentation.Session):
     return MetricsCalculator(
         measurement_session=measurement_session,
         network=network,
-        routers=routers,
+        users=users,
         graph=to_graph(network),
     )

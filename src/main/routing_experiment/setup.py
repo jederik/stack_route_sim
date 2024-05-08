@@ -5,6 +5,7 @@ import experimentation
 import instrumentation
 from . import net, routing, strategies, graphs
 from .metering import _create_metrics_calculator
+from .usage import User
 
 CostGenerator = Callable[[random.Random, int, int], tuple[float, float]]
 
@@ -12,21 +13,21 @@ CostGenerator = Callable[[random.Random, int, int], tuple[float, float]]
 class RoutingCandidate(experimentation.Candidate):
     def __init__(
             self,
-            routers: list[routing.Router],
+            users: list[User],
             measurement_reader: instrumentation.MeasurementReader,
             network: net.Network
     ):
         self.measurement_reader = measurement_reader
         self.network = network
-        self.routers = routers
+        self.users = users
 
     def run_step(self):
-        for router in self.routers:
-            router.tick()
+        for user in self.users:
+            user.router.tick()
 
     def scrape_metrics(self, metrics: list[str]) -> dict[str, float]:
         measurement_session = self.measurement_reader.session()
-        metrics_calculator = _create_metrics_calculator(self.network, self.routers, measurement_session)
+        metrics_calculator = _create_metrics_calculator(self.network, self.users, measurement_session)
         return metrics_calculator.scrape(metrics)
 
 
@@ -111,8 +112,12 @@ def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
     ]
     for router, adapter in zip(routers, network.adapters):
         adapter.register_handler(router.handler())
+    users = [
+        User(router)
+        for router in routers
+    ]
     return RoutingCandidate(
-        routers=routers,
+        users=users,
         measurement_reader=measurement_reader,
         network=network,
     )
