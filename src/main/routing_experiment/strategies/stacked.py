@@ -50,10 +50,12 @@ class ExtendableRouter(StackEngineRouter):
     def receive_broadcast(self, datagram: stacking.Datagram):
         if self.store is not None:
             if isinstance(datagram.payload, RoutePropagationMessage):
+                incoming_port = datagram.origin[0]
+                port_cost = self.stack_engine.adapter.port_cost(incoming_port)
                 self.store.insert(
                     target=datagram.payload.target,
                     route=datagram.origin,
-                    cost=datagram.payload.cost,
+                    cost=datagram.payload.cost + port_cost,
                 )
 
     def route(self, target: NodeId) -> Optional[Route]:

@@ -25,7 +25,13 @@ class Endpoint:
 
 
 class StackEngine(net.Adapter.Handler):
-    def __init__(self, adapter: net.Adapter, broadcasting_forwarding_rate: float, rnd: random.Random, broadcasting_auto_forward: bool):
+    def __init__(
+            self,
+            adapter: net.Adapter,
+            broadcasting_forwarding_rate: float,
+            rnd: random.Random,
+            broadcasting_auto_forward: bool
+    ):
         self.rnd = rnd
         self.adapter = adapter
         self.endpoint: Optional[Endpoint] = None

@@ -40,8 +40,10 @@ class MyTestCase(unittest.TestCase):
     def test_receive_route_propagation_message(self):
         store = Mock()
         store.insert = Mock()
+        stack_engine = Mock()
+        stack_engine.adapter.port_cost = Mock(return_value=2)
         stacked.ExtendableRouter(
-            stack_engine=Mock(),
+            stack_engine=stack_engine,
             scheduled_tasks=[],
             demand_map={},
             store=store,
@@ -57,7 +59,7 @@ class MyTestCase(unittest.TestCase):
         store.insert.assert_called_with(
             target=1,
             route=[1, 2, 3],
-            cost=3,
+            cost=5,
         )
 
 
