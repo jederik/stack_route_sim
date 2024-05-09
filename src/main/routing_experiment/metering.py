@@ -33,12 +33,12 @@ class MetricsCalculator:
     def _calculate_metric(self, name) -> float:
         if name == "transmissions_per_node":
             return self.transmissions_per_node()
-        if name == "routability_rate":
-            return self.routability_rate()
+        if name == "routability":
+            return self.routability()
         if name == "efficiency":
             return self.efficiency()
         if name == "efficient_routability":
-            return self.routability_rate() * self.efficiency()
+            return self.routability() * self.efficiency()
         if name == "demanded_efficiency":
             return self.demanded_efficiency()
         if name == "route_insertion_duration":
@@ -61,7 +61,7 @@ class MetricsCalculator:
     def transmissions_per_node(self):
         return self.measurement_session.get(measurements.TRANSMISSION_COUNT) / len(self.network.nodes)
 
-    def routability_rate(self):
+    def routability(self):
         total_supply = total_demand = 0
         reachabilities = graphs.reachabilities(self.graph)
         for source, _ in enumerate(self.network.nodes):

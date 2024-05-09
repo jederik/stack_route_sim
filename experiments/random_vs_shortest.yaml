@@ -5,7 +5,7 @@ plotting:
   groups:
     - x_metric: transmissions_per_node
       figures:
-        - metric: routability_rate
+        - metric: routability
         - metric: efficiency
         - metric: efficient_routability
 default_candidate_config:
