@@ -5,6 +5,7 @@ from routing_experiment import route_storage, stacking
 from routing_experiment.strategies import stacked
 
 
+# noinspection PyMethodMayBeStatic
 class MyTestCase(unittest.TestCase):
     def test_scheduled_tasks(self):
         tick_task_1 = Mock()
