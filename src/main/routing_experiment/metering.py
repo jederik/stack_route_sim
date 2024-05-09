@@ -39,8 +39,12 @@ class MetricsCalculator:
             return self.efficiency()
         if name == "efficient_routability":
             return self.routability() * self.efficiency()
+        if name == "demanded_routability":
+            return self.demanded_routability()
         if name == "demanded_efficiency":
             return self.demanded_efficiency()
+        if name == "demanded_efficient_routability":
+            return self.demanded_routability() * self.demanded_efficiency()
         if name == "route_insertion_duration":
             return self.route_update_duration()
         if name == "distance_update_duration":
@@ -67,38 +71,48 @@ class MetricsCalculator:
         for source, _ in enumerate(self.network.nodes):
             for target, _ in enumerate(self.network.nodes):
                 if reachabilities[source][target]:
-                    demand = self.routers[source].demand(target) / self.overall_demand
-                    demand = 1
-                    total_demand += demand
+                    total_demand += 1
                     if self.routers[source].has_route(target):
-                        total_supply += demand
+                        total_supply += 1
         return total_supply / total_demand
 
     def efficiency(self):
         route_lengths = 0
         node_distances = 0
         distances = graphs.distances(self.graph)
-        for i in range(len(self.network.nodes)):
-            for j in range(len(self.network.nodes)):
-                route = self.routers[i].route(j)
+        for source in range(len(self.network.nodes)):
+            for target in range(len(self.network.nodes)):
+                route = self.routers[source].route(target)
                 if route is not None:
-                    route_lengths += self.route_cost(i, route)
-                    node_distances += distances[i][j]
+                    route_lengths += self.route_cost(source, route)
+                    node_distances += distances[source][target]
         if route_lengths == 0:
             return 1
         return node_distances / route_lengths
+
+    def demanded_routability(self):
+        total_supply = total_demand = 0
+        reachabilities = graphs.reachabilities(self.graph)
+        for source, _ in enumerate(self.network.nodes):
+            for target, _ in enumerate(self.network.nodes):
+                if reachabilities[source][target]:
+                    demand = self.routers[source].demand(target) / self.overall_demand
+                    total_demand += demand
+                    if self.routers[source].has_route(target):
+                        total_supply += demand
+        return total_supply / total_demand
 
     def demanded_efficiency(self):
         route_lengths = 0
         node_distances = 0
         distances = graphs.distances(self.graph)
-        for i in range(len(self.network.nodes)):
-            for j in range(len(self.network.nodes)):
-                demand = self.routers[i].demand(j) / self.overall_demand
-                route = self.routers[i].route(j)
+        for source in range(len(self.network.nodes)):
+            for target in range(len(self.network.nodes)):
+                demand = self.routers[source].demand(target) / self.overall_demand
+                route = self.routers[source].route(target)
                 if route is not None:
-                    route_lengths += self.route_cost(i, route) * demand
-                    node_distances += distances[i][j] * demand
+                    route_lengths += self.route_cost(source, route) * demand
+                    node_distances += distances[source][target] * demand
         if route_lengths == 0:
             return 1
         return node_distances / route_lengths

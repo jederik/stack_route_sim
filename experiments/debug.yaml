@@ -1,12 +1,13 @@
 measurement:
-  steps: 300
+  steps: 30
   samples: 10
 plotting:
   groups:
     - x_metric: transmissions_per_node
       figures:
-        - metric: routability
-        - metric: efficiency
+        - metric: demanded_routability
+        - metric: demanded_efficiency
+        - metric: demanded_efficient_routability
 default_candidate_config:
   network:
     node_count: 100
@@ -14,14 +15,14 @@ default_candidate_config:
   routing:
     propagation:
       strategy: shortest_route
+    route_propagation: on
+    self_propagation: off
+    broadcast_forwarding_rate: 1.0
+    broadcasting_auto_forward: off
 candidates:
-  optimised:
-    routing:
-      strategy: optimised
-  stacked:
+  demand_agnostic:
     routing:
       strategy: stacked
-      route_propagation: on
-      self_propagation: off
-      broadcast_forwarding_rate: 1.0
-      broadcasting_auto_forward: off
+  demand_aware:
+    routing:
+      strategy: stacked
