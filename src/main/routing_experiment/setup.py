@@ -5,7 +5,6 @@ import experimentation
 import instrumentation
 from . import net, routing, strategies, graphs
 from .metering import _create_metrics_calculator
-from .usage import User
 
 CostGenerator = Callable[[random.Random, int, int], tuple[float, float]]
 
@@ -13,21 +12,21 @@ CostGenerator = Callable[[random.Random, int, int], tuple[float, float]]
 class RoutingCandidate(experimentation.Candidate):
     def __init__(
             self,
-            users: list[User],
+            routers: list[routing.Router],
             measurement_reader: instrumentation.MeasurementReader,
             network: net.Network
     ):
         self.measurement_reader = measurement_reader
         self.network = network
-        self.users = users
+        self.routers = routers
 
     def run_step(self):
-        for user in self.users:
-            user.router.tick()
+        for router in self.routers:
+            router.tick()
 
     def scrape_metrics(self, metrics: list[str]) -> dict[str, float]:
         measurement_session = self.measurement_reader.session()
-        metrics_calculator = _create_metrics_calculator(self.network, self.users, measurement_session)
+        metrics_calculator = _create_metrics_calculator(self.network, self.routers, measurement_session)
         return metrics_calculator.scrape(metrics)
 
 
@@ -88,23 +87,23 @@ def _graph_to_network(graph: graphs.CostGraph, tracker: instrumentation.Tracker)
     return network
 
 
-def _create_router_factory(strategy_config) -> routing.RouterFactory:
+def _create_router_factory(strategy_config, node_count: int) -> routing.RouterFactory:
     strategy: str = strategy_config["strategy"]
-    constructor: Callable[[dict[str], random.Random], routing.RouterFactory]
+    constructor: Callable[[dict[str], random.Random, int], routing.RouterFactory]
     if strategy == "simple":
         constructor = strategies.simple.SimpleRouterFactory
     elif strategy == "optimised":
         constructor = strategies.optimised.OptimisedRouterFactory
-    elif strategy == "roles":
-        constructor = strategies.roles.RolesRouterFactory
+    elif strategy == "stacked":
+        constructor = strategies.stacked.StackedRouterFactory
     else:
         raise Exception(f"unknown routing strategy: {strategy}")
-    return constructor(strategy_config, random.Random())
+    return constructor(strategy_config, random.Random(), node_count)
 
 
 def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
     tracker, measurement_reader = instrumentation.setup()
-    router_factory = _create_router_factory(config["routing"])
+    router_factory = _create_router_factory(config["routing"], config["network"]["node_count"])
     network = generate_network(config["network"], rnd, tracker)
     routers = [
         router_factory.create_router(adapter, node_id, tracker)
@@ -112,12 +111,8 @@ def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
     ]
     for router, adapter in zip(routers, network.adapters):
         adapter.register_handler(router.handler())
-    users = [
-        User(router)
-        for router in routers
-    ]
     return RoutingCandidate(
-        users=users,
+        routers=routers,
         measurement_reader=measurement_reader,
         network=network,
     )

@@ -1,23 +1,33 @@
 import instrumentation
 from experimentation.metering import MetricName
-from routing_experiment import net, measurements, graphs
+from routing_experiment import net, measurements, graphs, routing
 from routing_experiment.graphs import CostGraph
 from routing_experiment.net import NodeId, Cost
 from routing_experiment.routing import Route
-from routing_experiment.usage import User
 
 
 class MetricsCalculator:
     def __init__(
             self,
             network: net.Network,
-            users: list[User],
+            routers: list[routing.Router],
             graph: CostGraph,
             measurement_session: instrumentation.Session,
     ):
+        self.overall_demand = sum(
+            [
+                sum(
+                    [
+                        source_router.demand(target)
+                        for target in range(len(network.nodes))
+                    ]
+                )
+                for source_router in routers
+            ]
+        )
         self.measurement_session = measurement_session
         self.network = network
-        self.users = users
+        self.routers = routers
         self.graph = graph
 
     def _calculate_metric(self, name) -> float:
@@ -29,6 +39,8 @@ class MetricsCalculator:
             return self.efficiency()
         if name == "efficient_routability":
             return self.routability_rate() * self.efficiency()
+        if name == "demanded_efficiency":
+            return self.demanded_efficiency()
         if name == "route_insertion_duration":
             return self.route_update_duration()
         if name == "distance_update_duration":
@@ -50,21 +62,17 @@ class MetricsCalculator:
         return self.measurement_session.get(measurements.TRANSMISSION_COUNT) / len(self.network.nodes)
 
     def routability_rate(self):
-        routable_pairs = 0
-        for i in range(len(self.network.nodes)):
-            user = self.users[i]
-            for j in range(len(self.network.nodes)):
-                if user.router.has_route(j):
-                    routable_pairs += 1
-
-        reachable_pairs = 0
+        total_supply = total_demand = 0
         reachabilities = graphs.reachabilities(self.graph)
-        for i in range(len(self.network.nodes)):
-            for j in range(len(self.network.nodes)):
-                if reachabilities[i][j]:
-                    reachable_pairs += 1
-
-        return routable_pairs / reachable_pairs
+        for source, _ in enumerate(self.network.nodes):
+            for target, _ in enumerate(self.network.nodes):
+                if reachabilities[source][target]:
+                    demand = self.routers[source].demand(target) / self.overall_demand
+                    demand = 1
+                    total_demand += demand
+                    if self.routers[source].has_route(target):
+                        total_supply += demand
+        return total_supply / total_demand
 
     def efficiency(self):
         route_lengths = 0
@@ -72,10 +80,25 @@ class MetricsCalculator:
         distances = graphs.distances(self.graph)
         for i in range(len(self.network.nodes)):
             for j in range(len(self.network.nodes)):
-                route = self.users[i].router.route(j)
+                route = self.routers[i].route(j)
                 if route is not None:
                     route_lengths += self.route_cost(i, route)
                     node_distances += distances[i][j]
+        if route_lengths == 0:
+            return 1
+        return node_distances / route_lengths
+
+    def demanded_efficiency(self):
+        route_lengths = 0
+        node_distances = 0
+        distances = graphs.distances(self.graph)
+        for i in range(len(self.network.nodes)):
+            for j in range(len(self.network.nodes)):
+                demand = self.routers[i].demand(j) / self.overall_demand
+                route = self.routers[i].route(j)
+                if route is not None:
+                    route_lengths += self.route_cost(i, route) * demand
+                    node_distances += distances[i][j] * demand
         if route_lengths == 0:
             return 1
         return node_distances / route_lengths
@@ -107,10 +130,10 @@ def to_graph(network: net.Network) -> graphs.CostGraph:
     }
 
 
-def _create_metrics_calculator(network: net.Network, users: list[User], measurement_session: instrumentation.Session):
+def _create_metrics_calculator(network: net.Network, routers: list[routing.Router], measurement_session: instrumentation.Session):
     return MetricsCalculator(
         measurement_session=measurement_session,
         network=network,
-        users=users,
+        routers=routers,
         graph=to_graph(network),
     )

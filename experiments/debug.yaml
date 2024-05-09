@@ -13,33 +13,14 @@ default_candidate_config:
     node_count: 100
     density: .1
   routing:
-    strategy: optimised
     propagation:
-      strategy: random_route
-      cutoff_rate: 0.6
+      strategy: shortest_route
 candidates:
-  random:
+  optimised:
     routing:
-      propagation:
-        strategy: random_route
-        cutoff_rate: .1
-  shortest:
+      strategy: optimised
+  stacked:
     routing:
-      propagation:
-        strategy: shortest_route
-  alternating:
-    routing:
-      propagation:
-        strategy: alternate
-        shortest:
-        random:
-          cutoff_rate: .1
-        ratio: 0.5
-  roles:
-    routing:
-      strategy: roles
-      role_distribution:
-        server: 1
-        client: 1
-        helper: 3
-        forwarder: 5
+      strategy: stacked
+      broadcast_forwarding_rate: 1.0
+      broadcasting_auto_forward: off

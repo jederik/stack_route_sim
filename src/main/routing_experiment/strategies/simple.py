@@ -17,7 +17,9 @@ class SimpleRouter(Router, net.Adapter.Handler):
             adapter: net.Adapter,
             node_id: NodeId,
             propagation_route_picker: Callable[[_RouteStore], Route],
+            default_demand: float,
     ):
+        self.default_demand = default_demand
         self.workers: list[Worker] = []
         self.pick_propagation_route = propagation_route_picker
         self.routes: _RouteStore = {
@@ -58,6 +60,10 @@ class SimpleRouter(Router, net.Adapter.Handler):
             self.routes[node_id] = []
             return self.routes[node_id]
 
+    @override
+    def demand(self, target) -> float:
+        return self.default_demand
+
 
 class RoutePropagationMessage:
     def __init__(self, node_id: int, route: list[int]):
@@ -97,7 +103,7 @@ class RoutePropagator(Worker):
 
 
 class SimpleRouterFactory(RouterFactory):
-    def __init__(self, config, rnd: random.Random):
+    def __init__(self, config, rnd: random.Random, node_count: int):
         self.config = config
 
     def create_router(self, adapter: net.Adapter, node_id: NodeId, tracker: instrumentation.Tracker):
@@ -106,6 +112,7 @@ class SimpleRouterFactory(RouterFactory):
             node_id=node_id,
             propagation_route_picker=_pick_propagation_route_shortest if self.config[
                 "propagate_shortest_route"] else _pick_propagation_route_random,
+            default_demand=1,
         )
         router.workers = [
             RoutePropagator(

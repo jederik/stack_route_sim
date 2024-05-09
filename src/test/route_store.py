@@ -30,17 +30,17 @@ def _random_walk(network: Network, source: NodeId, rnd: random.Random) -> tuple[
 
 class MyTestCase(unittest.TestCase):
     def test_self_route(self):
-        store = RouteStore(1, MagicMock(), Mock(), True)
+        store = RouteStore(1, MagicMock(), Mock(), True, True)
         self.assertEqual([], store.shortest_route(1).path)  # add assertion here
 
     def test_insertion(self):
-        store = RouteStore(1, MagicMock(), Mock(), True)
+        store = RouteStore(1, MagicMock(), Mock(), True, True)
         route = [1, 2, 3, 4]
         store.insert(2, route, 4)
         self.assertEqual(route, store.shortest_route(2).path)
 
     def test_combined_routes(self):
-        store = RouteStore(1, MagicMock(), Mock(), True)
+        store = RouteStore(1, MagicMock(), Mock(), True, True)
         store.insert(3, [1, 2, 4], 3)
         store.insert(2, [1, 2], 2)
         store.insert(2, [3], 1)
@@ -58,7 +58,7 @@ class MyTestCase(unittest.TestCase):
                 tracker=Mock(),
             )
             source = int(rnd.random() * len(network.nodes))
-            store = RouteStore(source, MagicMock(), Mock(), True)
+            store = RouteStore(source, MagicMock(), Mock(), True, True)
             for _ in range(10):
                 target, route, cost = _random_walk(network, source, rnd)
                 store.insert(target, route, cost)
@@ -82,7 +82,7 @@ class MyTestCase(unittest.TestCase):
         # This test reproduces a bug that occurred when inserting a route r to target x when the store already
         # contains a route r2 to target x that is prefixed by r.
 
-        store = RouteStore(0, MagicMock(), Mock(), True)
+        store = RouteStore(0, MagicMock(), Mock(), True, True)
         store.nodes[0] = _Node()
         store.nodes[0].edges[1] = _Edge()
         store.nodes[0].edges[1].insert_path([1, 2], 10)
@@ -99,7 +99,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsNotNone(store.nodes[1].predecessor)
 
     def test_insert_existing_route(self):
-        store = RouteStore(0, MagicMock(), Mock(), True)
+        store = RouteStore(0, MagicMock(), Mock(), True, True)
         store.insert(1, [1], 1)
         store.insert(1, [1], 1)
 
@@ -111,7 +111,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(0, len(store.nodes[1].edges))
 
     def test_insert_existing_two_hop_route(self):
-        store = RouteStore(0, MagicMock(), Mock(), True)
+        store = RouteStore(0, MagicMock(), Mock(), True, True)
         store.insert(1, [1], 1)
         store.insert(2, [1, 2], 3)
         store.insert(2, [1, 2], 3)
@@ -128,7 +128,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(0, len(store.nodes[2].edges))
 
     def test_insert_redirect(self):
-        store = RouteStore(0, MagicMock(), Mock(), True)
+        store = RouteStore(0, MagicMock(), Mock(), True, True)
         store.nodes[0].edges[2] = _Edge()
         store.nodes[0].edges[2].priced_routes = [
             PricedRoute(path=[1, 2], cost=3),

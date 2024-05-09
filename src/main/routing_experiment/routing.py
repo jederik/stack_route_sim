@@ -21,7 +21,15 @@ class Router:
     def handler(self) -> net.Adapter.Handler:
         raise Exception("not implemented")
 
+    def demand(self, target) -> float:
+        raise Exception("not implemented")
+
 
 class RouterFactory:
-    def create_router(self, adapter: net.Adapter, node_id: NodeId, tracker: instrumentation.Tracker) -> Router:
+    def create_router(
+            self,
+            adapter: net.Adapter,
+            node_id: NodeId,
+            tracker: instrumentation.Tracker,
+    ) -> Router:
         raise Exception("not implemented")

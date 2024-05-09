@@ -26,7 +26,9 @@ class OptimisedRouter(Router, net.Adapter.Handler):
             propagation_strategy: Propagator,
             store: RouteStore,
             logger: logging.Logger,
+            default_demand: float,
     ):
+        self.default_demand = default_demand
         self.logger = logger
         self.node_id = node_id
         self.adapter = adapter
@@ -69,9 +71,13 @@ class OptimisedRouter(Router, net.Adapter.Handler):
     def handler(self) -> net.Adapter.Handler:
         return self
 
+    @override
+    def demand(self, target) -> float:
+        return self.default_demand
+
 
 class OptimisedRouterFactory(RouterFactory):
-    def __init__(self, routing_config, rnd: random.Random):
+    def __init__(self, routing_config, rnd: random.Random, node_count: int):
         self.store_factory = route_storage.Factory(config=routing_config["store"] if "store" in routing_config else {})
         self.rnd = rnd
         self.propagator = create_propagator(routing_config["propagation"], rnd)
@@ -85,4 +91,5 @@ class OptimisedRouterFactory(RouterFactory):
             propagation_strategy=self.propagator,
             store=store,
             logger=logger,
+            default_demand=1,
         )
