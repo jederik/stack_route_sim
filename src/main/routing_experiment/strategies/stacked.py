@@ -126,8 +126,10 @@ def _init_telemetry(node_id) -> tuple[logging.Logger, instrumentation.Tracker]:
 
 class StackedRouterFactory(routing.RouterFactory):
     def __init__(self, config: dict, rnd: random.Random, node_count: int):
-        self.broadcasting_auto_forward = config["broadcasting_auto_forward"]
-        self.broadcast_forwarding_rate = config["broadcast_forwarding_rate"]
+        self.route_propagation: bool = config["route_propagation"]
+        self.self_propagation: bool = config["self_propagation"]
+        self.broadcasting_auto_forward: bool = config["broadcasting_auto_forward"]
+        self.broadcast_forwarding_rate: float = config["broadcast_forwarding_rate"]
         self.node_count = node_count
         self.config = config
         self.store_factory = route_storage.Factory(config["store"] if "store" in config else {})
@@ -150,19 +152,25 @@ class StackedRouterFactory(routing.RouterFactory):
         propagator = propagation.create_propagator(self.config["propagation"], self.rnd)
         logger, tracker = _init_telemetry(node_id)
         store = self.store_factory.create_store(logger, node_id, tracker)
-        router = ExtendableRouter(
-            stack_engine=stack_engine,
-            scheduled_tasks=[
-                # SelfPropagator(
-                #     stack_engine=stack_engine,
-                #     address=node_id,
-                # ),
+        scheduled_tasks = []
+        if self.route_propagation:
+            scheduled_tasks.append(
                 RoutePropagator(
                     propagator=propagator,
                     store=store,
                     stack_engine=stack_engine,
                 ),
-            ],
+            )
+        if self.self_propagation:
+            scheduled_tasks.append(
+                SelfPropagator(
+                    stack_engine=stack_engine,
+                    address=node_id,
+                ),
+            )
+        router = ExtendableRouter(
+            stack_engine=stack_engine,
+            scheduled_tasks=scheduled_tasks,
             demand_map=demand_map,
             store=store,
         )
