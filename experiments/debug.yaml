@@ -1,34 +1,27 @@
 measurement:
-  steps: 30
+  steps: 300
   samples: 10
 plotting:
   groups:
     - x_metric: transmissions_per_node
       figures:
-        - metric: propagated_route_length
-        - metric: route_insertion_duration
-        - metric: distance_update_duration
+        - metric: routability_rate
+        - metric: efficiency
 default_candidate_config:
   network:
     node_count: 100
     density: .1
   routing:
-    strategy: optimised
+    propagation:
+      strategy: shortest_route
 candidates:
-  random:
+  optimised:
     routing:
-      propagation:
-        strategy: random_route
-        cutoff_rate: .1
-  shortest:
+      strategy: optimised
+  stacked:
     routing:
-      propagation:
-        strategy: shortest_route
-  alternating:
-    routing:
-      propagation:
-        strategy: alternate
-        shortest:
-        random:
-          cutoff_rate: .1
-        random_ratio: 0.5
+      strategy: stacked
+      route_propagation: on
+      self_propagation: off
+      broadcast_forwarding_rate: 1.0
+      broadcasting_auto_forward: off

@@ -1,15 +1,6 @@
 ## Tasks
 
-- introduce routing strategy with
-  - forwarding layer
-  - registerable actors, each actor being able to
-    - handle incoming messages
-    - send message
-    - tick
-- implement actors
-  - self-promotion
-  - route storage
-  - foreign route propagation
+- only consider client-server pairs for routability
 
 
 ## Goals

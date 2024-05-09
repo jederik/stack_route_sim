@@ -249,5 +249,5 @@ class Factory:
             "eliminate_cycles_eagerly"]
         self.eliminate_cycles = False if "eliminate_cycles" not in config else config["eliminate_cycles"]
 
-    def create_store(self, logger: logging.Logger, node_id: NodeId, tracker: instrumentation.Tracker):
-        return RouteStore(node_id, tracker, logger, self.eliminate_cycles, self.eliminate_cycles_eagerly)
+    def create_store(self, logger: logging.Logger, source: NodeId, tracker: instrumentation.Tracker):
+        return RouteStore(source, tracker, logger, self.eliminate_cycles, self.eliminate_cycles_eagerly)
