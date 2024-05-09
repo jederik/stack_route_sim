@@ -12,7 +12,7 @@ class MyTestCase(unittest.TestCase):
             adapter=Mock(),
             rnd=Mock(),
             broadcasting_forwarding_rate=1.0,
-            broadcasting_auto_forward=False,
+            random_walk_broadcasting=True,
         )
         engine.endpoint = endpoint
         engine.handle(
@@ -42,7 +42,7 @@ class MyTestCase(unittest.TestCase):
             adapter=adapter,
             rnd=rnd,
             broadcasting_forwarding_rate=1.0,
-            broadcasting_auto_forward=False,
+            random_walk_broadcasting=True,
         )
         engine.send_datagram(
             datagram=stacking.Datagram(
@@ -65,7 +65,7 @@ class MyTestCase(unittest.TestCase):
             adapter=adapter,
             rnd=Mock(),
             broadcasting_forwarding_rate=1.0,
-            broadcasting_auto_forward=False,
+            random_walk_broadcasting=True,
         )
         engine.endpoint = endpoint
         engine.handle(
@@ -88,7 +88,7 @@ class MyTestCase(unittest.TestCase):
             adapter=adapter,
             rnd=Mock(),
             broadcasting_forwarding_rate=1.0,
-            broadcasting_auto_forward=False,
+            random_walk_broadcasting=True,
         )
         engine.endpoint = Mock()
         engine.handle(
@@ -116,7 +116,7 @@ class MyTestCase(unittest.TestCase):
             adapter=adapter,
             rnd=rnd,
             broadcasting_forwarding_rate=1.0,
-            broadcasting_auto_forward=False,
+            random_walk_broadcasting=True,
         )
         engine.send_datagram(
             datagram=stacking.Datagram(

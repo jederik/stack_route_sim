@@ -17,6 +17,7 @@ class MyTestCase(unittest.TestCase):
             ],
             demand_map={},
             store=Mock(),
+            auto_forward_propagations=False,
         ).tick()
         tick_task_1.execute.assert_called()
         tick_task_2.execute.assert_called()
@@ -34,6 +35,7 @@ class MyTestCase(unittest.TestCase):
             scheduled_tasks=[],
             demand_map={},
             store=store,
+            auto_forward_propagations=False,
         ).route(1)
         self.assertEqual([1, 2, 3], route)
 
@@ -47,6 +49,7 @@ class MyTestCase(unittest.TestCase):
             scheduled_tasks=[],
             demand_map={},
             store=store,
+            auto_forward_propagations=False,
         ).receive_broadcast(
             datagram=stacking.Datagram(
                 payload=stacked.RoutePropagationMessage(

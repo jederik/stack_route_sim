@@ -36,9 +36,11 @@ class ExtendableRouter(StackEngineRouter):
             stack_engine: stacking.StackEngine,
             scheduled_tasks: list[Task],
             demand_map: dict[NodeId, float],
+            auto_forward_propagations: bool,
             store: Optional[route_storage.RouteStore] = None,
     ):
         super().__init__(stack_engine)
+        self.auto_forward_propagations = auto_forward_propagations
         self.demand_map = demand_map
         self.scheduled_tasks = scheduled_tasks
         self.store = store
@@ -48,15 +50,18 @@ class ExtendableRouter(StackEngineRouter):
             task.execute()
 
     def receive_broadcast(self, datagram: stacking.Datagram):
-        if self.store is not None:
-            if isinstance(datagram.payload, RoutePropagationMessage):
+        if isinstance(datagram.payload, RoutePropagationMessage):
+            if self.store is not None:
                 incoming_port = datagram.origin[0]
                 port_cost = self.stack_engine.adapter.port_cost(incoming_port)
+                datagram.payload.cost += port_cost
                 self.store.insert(
                     target=datagram.payload.target,
                     route=datagram.origin,
-                    cost=datagram.payload.cost + port_cost,
+                    cost=datagram.payload.cost,
                 )
+            if self.auto_forward_propagations:
+                self.stack_engine.send_datagram(datagram)
 
     def route(self, target: NodeId) -> Optional[Route]:
         if self.store is not None:
@@ -128,9 +133,14 @@ def _init_telemetry(node_id) -> tuple[logging.Logger, instrumentation.Tracker]:
 
 class StackedRouterFactory(routing.RouterFactory):
     def __init__(self, config: dict, rnd: random.Random, node_count: int):
+        self.auto_forward_propagations = config["auto_forward_propagations"]
+        self.random_walk_broadcasting = (
+            config["random_walk_broadcasting"]
+            if self.auto_forward_propagations
+            else False
+        )
         self.route_propagation: bool = config["route_propagation"]
         self.self_propagation: bool = config["self_propagation"]
-        self.broadcasting_auto_forward: bool = config["broadcasting_auto_forward"]
         self.broadcast_forwarding_rate: float = config["broadcast_forwarding_rate"]
         self.node_count = node_count
         self.config = config
@@ -148,7 +158,7 @@ class StackedRouterFactory(routing.RouterFactory):
             adapter=adapter,
             rnd=self.rnd,
             broadcasting_forwarding_rate=self.broadcast_forwarding_rate,
-            broadcasting_auto_forward=self.broadcasting_auto_forward
+            random_walk_broadcasting=self.random_walk_broadcasting
         )
         demand_map = self.generate_demand_map()
         propagator = propagation.create_propagator(self.config["propagation"], self.rnd)
@@ -174,6 +184,7 @@ class StackedRouterFactory(routing.RouterFactory):
             stack_engine=stack_engine,
             scheduled_tasks=scheduled_tasks,
             demand_map=demand_map,
+            auto_forward_propagations=self.auto_forward_propagations,
             store=store,
         )
         stack_engine.endpoint = router

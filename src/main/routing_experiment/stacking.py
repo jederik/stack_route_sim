@@ -30,13 +30,13 @@ class StackEngine(net.Adapter.Handler):
             adapter: net.Adapter,
             broadcasting_forwarding_rate: float,
             rnd: random.Random,
-            broadcasting_auto_forward: bool
+            random_walk_broadcasting: bool,
     ):
+        self.random_walk_broadcasting = random_walk_broadcasting
         self.rnd = rnd
         self.adapter = adapter
         self.endpoint: Optional[Endpoint] = None
         self.broadcasting_forwarding_rate = broadcasting_forwarding_rate
-        self.broadcasting_auto_forward = broadcasting_auto_forward
 
     @override
     def handle(self, port_num: PortNumber, message) -> None:
@@ -52,8 +52,6 @@ class StackEngine(net.Adapter.Handler):
         else:
             # broadcast
             self.endpoint.receive_broadcast(datagram)
-            if self.broadcasting_auto_forward:
-                self.send_datagram(datagram)
 
     def send_datagram(self, datagram: Datagram):
         if datagram.destination is not None:
@@ -62,6 +60,13 @@ class StackEngine(net.Adapter.Handler):
             self.adapter.send(port_num, datagram)
         else:
             # broadcast
-            if self.broadcasting_forwarding_rate > self.rnd.random():
-                port_num = self.rnd.choice(self.adapter.ports())
-                self.adapter.send(port_num, datagram)
+            if self.random_walk_broadcasting:
+                if self.broadcasting_forwarding_rate > self.rnd.random():
+                    port_num = self.rnd.choice(self.adapter.ports())
+                    self.adapter.send(port_num, datagram)
+            else:
+                ports = self.adapter.ports()
+                prob = self.broadcasting_forwarding_rate / len(ports)
+                for port in ports:
+                    if prob > self.rnd.random():
+                        self.adapter.send(port, datagram)
