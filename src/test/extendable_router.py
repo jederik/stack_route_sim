@@ -19,52 +19,57 @@ class MyTestCase(unittest.TestCase):
             demand_map={},
             store=Mock(),
             auto_forward_propagations=False,
+            message_handlers={},
         ).tick()
         tick_task_1.execute.assert_called()
         tick_task_2.execute.assert_called()
 
-    def test_route_retrieval(self):
-        store = Mock()
-        store.shortest_route = Mock(
-            return_value=route_storage.PricedRoute(
-                path=[1, 2, 3],
-                cost=13,
-            ),
-        )
-        route = stacked.ExtendableRouter(
+    def test_broadcast_handling(self):
+        handler = Mock()
+        handler.handle = Mock()
+        stacked.ExtendableRouter(
             stack_engine=Mock(),
             scheduled_tasks=[],
             demand_map={},
-            store=store,
+            store=Mock(),
             auto_forward_propagations=False,
-        ).route(1)
-        self.assertEqual([1, 2, 3], route)
-
-    def test_receive_route_propagation_message(self):
-        store = Mock()
-        store.insert = Mock()
-        stack_engine = Mock()
-        stack_engine.adapter.port_cost = Mock(return_value=2)
-        stacked.ExtendableRouter(
-            stack_engine=stack_engine,
-            scheduled_tasks=[],
-            demand_map={},
-            store=store,
-            auto_forward_propagations=False,
+            message_handlers={
+                str: handler,
+            },
         ).receive_broadcast(
             datagram=stacking.Datagram(
-                payload=stacked.RoutePropagationMessage(
-                    target=1,
-                    cost=3,
-                ),
+                payload="blabla",
                 origin=[1, 2, 3],
             ),
         )
-        store.insert.assert_called_with(
-            target=1,
-            route=[1, 2, 3],
-            cost=5,
+        handler.handle.assert_called()
+        self.assertEqual("blabla", handler.handle.call_args[0][0].payload)
+        self.assertEqual([1, 2, 3], handler.handle.call_args[0][0].origin)
+        self.assertIsNone(handler.handle.call_args[0][0].destination)
+
+    def test_unicast_handling(self):
+        handler = Mock()
+        handler.handle = Mock()
+        stacked.ExtendableRouter(
+            stack_engine=Mock(),
+            scheduled_tasks=[],
+            demand_map={},
+            store=Mock(),
+            auto_forward_propagations=False,
+            message_handlers={
+                str: handler,
+            },
+        ).receive_broadcast(
+            datagram=stacking.Datagram(
+                payload="blabla",
+                origin=[1, 2, 3],
+                destination=[4, 5, 6]
+            ),
         )
+        handler.handle.assert_called()
+        self.assertEqual("blabla", handler.handle.call_args[0][0].payload)
+        self.assertEqual([1, 2, 3], handler.handle.call_args[0][0].origin)
+        self.assertEqual([4, 5, 6], handler.handle.call_args[0][0].destination)
 
 
 if __name__ == '__main__':
