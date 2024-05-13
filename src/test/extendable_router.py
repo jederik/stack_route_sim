@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from routing_experiment import route_storage, stacking
+from routing_experiment import stacking
 from routing_experiment.strategies import stacked
 
 
@@ -36,7 +36,7 @@ class MyTestCase(unittest.TestCase):
             message_handlers={
                 str: handler,
             },
-        ).receive_broadcast(
+        ).receive_datagram(
             datagram=stacking.Datagram(
                 payload="blabla",
                 origin=[1, 2, 3],
@@ -59,7 +59,7 @@ class MyTestCase(unittest.TestCase):
             message_handlers={
                 str: handler,
             },
-        ).receive_broadcast(
+        ).receive_datagram(
             datagram=stacking.Datagram(
                 payload="blabla",
                 origin=[1, 2, 3],
