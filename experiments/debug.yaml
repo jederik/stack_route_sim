@@ -18,18 +18,13 @@ default_candidate_config:
     route_propagation: on
     self_propagation: off
     broadcast_forwarding_rate: 0.8
+    auto_forward_propagations: off
 candidates:
-  depth_first:
+  without_search:
     routing:
       strategy: stacked
-      auto_forward_propagations: on
-      random_walk_broadcasting: on
-  breadth_first:
+      searching: off
+  with_search:
     routing:
       strategy: stacked
-      auto_forward_propagations: on
-      random_walk_broadcasting: off
-  no_broadcast:
-    routing:
-      strategy: stacked
-      auto_forward_propagations: off
+      searching: on

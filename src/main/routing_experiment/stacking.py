@@ -5,7 +5,6 @@ from overrides import override
 
 from routing_experiment import net
 from routing_experiment.net import PortNumber
-
 from routing_experiment.routing import Route
 
 
@@ -17,10 +16,7 @@ class Datagram:
 
 
 class Endpoint:
-    def receive_unicast(self, datagram: Datagram):
-        raise Exception("not implemented")
-
-    def receive_broadcast(self, datagram: Datagram):
+    def receive_datagram(self, datagram: Datagram):
         raise Exception("not implemented")
 
 
@@ -46,18 +42,25 @@ class StackEngine(net.Adapter.Handler):
         if datagram.destination is not None:
             # unicast
             if len(datagram.destination) == 0:
-                self.endpoint.receive_unicast(datagram)
+                self.endpoint.receive_datagram(datagram)
             else:
                 self.send_datagram(datagram)
         else:
             # broadcast
-            self.endpoint.receive_broadcast(datagram)
+            self.endpoint.receive_datagram(datagram)
 
     def send_datagram(self, datagram: Datagram):
         if datagram.destination is not None:
             # unicast
-            port_num = datagram.destination.pop(0)
-            self.adapter.send(port_num, datagram)
+            port_num = datagram.destination[0]
+            self.adapter.send(
+                port_num=port_num,
+                message=Datagram(
+                    payload=datagram.payload,
+                    origin=datagram.origin,
+                    destination=datagram.destination[1:],
+                ),
+            )
         else:
             # broadcast
             if self.random_walk_broadcasting:

@@ -1,6 +1,5 @@
 ## Tasks
 
-- only consider client-server pairs for routability
 
 
 ## Goals
