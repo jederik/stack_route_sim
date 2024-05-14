@@ -1,4 +1,5 @@
 import bisect
+import copy
 import math
 from typing import Optional
 
@@ -85,24 +86,21 @@ class RouteStore:
         }
 
     def shortest_route(self, target: NodeId) -> Optional[PricedRoute]:
-        if target == self.source:
-            return PricedRoute([], 0)
         if target not in self.nodes:
             return None
+        return copy.deepcopy(self._shortest_route_rec(target))
+
+    def _shortest_route_rec(self, target: NodeId) -> Optional[PricedRoute]:
+        if target == self.source:
+            return PricedRoute([], 0)
         pred = self.nodes[target].predecessor
-        if pred is None:
-            raise Exception(f"node {self.source}: {target} has no predecessor")
-        if pred not in self.nodes:
-            raise Exception(f"node {self.source}: {pred} is best predecessor of {target} but has no outgoing edges")
-        if target not in self.nodes[pred].edges:
-            raise Exception(f"node {self.source}: {pred} is best predecessor of {target} but has no edge to it")
         pred_route = self.shortest_route(pred)
         if pred_route is None:
             return None
         last_mile = self.nodes[pred].edges[target].priced_routes[0]
         return PricedRoute(
             path=pred_route.path + last_mile.path,
-            cost=pred_route.cost + last_mile.cost
+            cost=pred_route.cost + last_mile.cost,
         )
 
     def has_route(self, target: NodeId) -> bool:
@@ -197,6 +195,7 @@ class RouteStore:
         return non_prefixed_edge_routes, prefixed_edge_routes
 
     def insert(self, target: NodeId, route: Route, cost: Cost):
+        route = copy.deepcopy(route)
         self.measurements.received_route_length.increase(len(route))
         self.measurements.route_insertion_count.increase(1)
         modified_edges: list[tuple[NodeId, NodeId]] = []
