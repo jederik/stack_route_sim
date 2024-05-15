@@ -51,6 +51,8 @@ class MetricsCalculator:
             return self.distance_update_time()
         if name == "propagated_route_length":
             return self.propagated_route_length()
+        if name == "route_failures":
+            return self.route_failures()
         raise Exception(f"metric not supported: {name}")
 
     def _route_cost(self, source: NodeId, route: Route) -> Cost:
@@ -65,11 +67,24 @@ class MetricsCalculator:
     def _route_correct(self, source: NodeId, route: Route, target: NodeId) -> bool:
         node = source
         for port in route:
+            if port not in self.network.nodes[node].ports:
+                return False
             node = self.network.nodes[node].ports[port].target_node
         return node == target
 
     def transmissions_per_node(self):
         return self.measurement_session.get(measurements.TRANSMISSION_COUNT) / len(self.network.nodes)
+
+    def route_failures(self):
+        total_failures = total_routable_pairs = 0
+        for source, _ in enumerate(self.network.nodes):
+            for target, _ in enumerate(self.network.nodes):
+                if self.routers[source].has_route(target):
+                    total_routable_pairs += 1
+                    route = self.routers[source].route(target)
+                    if not self._route_correct(source, route, target):
+                        total_failures += 1
+        return total_failures / total_routable_pairs
 
     def routability(self):
         total_supply = total_demand = 0

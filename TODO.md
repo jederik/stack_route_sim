@@ -1,6 +1,6 @@
 ## Tasks
 
-- have distinct metrics for correct and incorrect routes 
+- simulate link failures
 
 
 ## Goals

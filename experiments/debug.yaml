@@ -8,6 +8,7 @@ plotting:
         - metric: routability
         - metric: efficiency
         - metric: efficient_routability
+        - metric: route_failures
 default_candidate_config:
   network:
     node_count: 100
