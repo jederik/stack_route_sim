@@ -14,13 +14,21 @@ class RoutingCandidate(experimentation.Candidate):
             self,
             routers: list[routing.Router],
             measurement_reader: instrumentation.MeasurementReader,
-            network: net.Network
+            network: net.Network,
+            rnd: random.Random,
+            link_fail_rate: float,
     ):
+        self.link_fail_rate = link_fail_rate
+        self.rnd = rnd
         self.measurement_reader = measurement_reader
         self.network = network
         self.routers = routers
 
     def run_step(self):
+        self._tick_routers()
+        self._fail_links()
+
+    def _tick_routers(self):
         for router in self.routers:
             router.tick()
 
@@ -28,6 +36,16 @@ class RoutingCandidate(experimentation.Candidate):
         measurement_session = self.measurement_reader.session()
         metrics_calculator = _create_metrics_calculator(self.network, self.routers, measurement_session)
         return metrics_calculator.scrape(metrics)
+
+    def _fail_links(self):
+        failing_links = [
+            (node_id, port_num)
+            for node_id, node in enumerate(self.network.nodes)
+            for port_num, port in node.ports.items()
+            if node_id > port.target_node and self.link_fail_rate > self.rnd.random()
+        ]
+        for (node_id, port_num) in failing_links:
+            self.network.disconnect(node_id, port_num)
 
 
 def cost_generator_same(rnd: random.Random, i: int, j: int) -> tuple[float, float]:
@@ -115,4 +133,6 @@ def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
         routers=routers,
         measurement_reader=measurement_reader,
         network=network,
+        rnd=rnd,
+        link_fail_rate=config["link_fail_rate"],
     )

@@ -92,6 +92,12 @@ class Network:
         n1.next_port_num += 1
         n2.next_port_num += 1
 
+    def disconnect(self, node_id: NodeId, port_num: PortNumber) -> None:
+        other_node_id = self.nodes[node_id].ports[port_num].target_node
+        reverse_port_num = self.nodes[node_id].ports[port_num].target_port_num
+        del self.nodes[other_node_id].ports[reverse_port_num]
+        del self.nodes[node_id].ports[port_num]
+
     def _send(self, sender_node_id: int, sender_port_num: int, message):
         node = self.nodes[sender_node_id]
         port = node.ports[sender_port_num]

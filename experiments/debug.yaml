@@ -20,6 +20,7 @@ default_candidate_config:
     self_propagation: off
     broadcast_forwarding_rate: 0.8
     auto_forward_propagations: off
+  link_fail_rate: 0.03
 candidates:
   without_search:
     routing:

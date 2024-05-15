@@ -1,6 +1,6 @@
 ## Tasks
 
-- simulate link failures
+- simulate link establishment
 
 
 ## Goals
