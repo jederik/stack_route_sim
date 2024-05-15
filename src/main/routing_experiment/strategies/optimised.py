@@ -60,8 +60,10 @@ class OptimisedRouter(Router, net.Adapter.Handler):
 
     @override
     def tick(self) -> None:
-        port, target, route, cost = self._propagation_strategy.pick(self.store, self.adapter)
-        self._send_propagation_message(port, target, route, cost)
+        choice = self._propagation_strategy.pick(self.store, self.adapter)
+        if choice is not None:
+            (port, target, route, cost) = choice
+            self._send_propagation_message(port, target, route, cost)
 
     def _send_propagation_message(self, port_num: PortNumber, target: NodeId, route: Route, cost: Cost):
         message = PropagationMessage(target, route, cost)

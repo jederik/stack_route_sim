@@ -105,8 +105,10 @@ class RoutePropagator(ExtendableRouter.Task):
         self.propagator = propagator
 
     def execute(self):
-        _, target, route, cost = self.propagator.pick(self.store, self.stack_engine.adapter)
-        self._send_route_propagation(target, route, cost)
+        choice = self.propagator.pick(self.store, self.stack_engine.adapter)
+        if choice is not None:
+            (_, target, route, cost) = choice
+            self._send_route_propagation(target, route, cost)
 
     def _send_route_propagation(self, target: NodeId, route: Route, cost: Cost):
         self.stack_engine.send_datagram(

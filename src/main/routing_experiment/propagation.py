@@ -1,5 +1,5 @@
 import random
-from typing import TypeVar
+from typing import TypeVar, Optional
 
 from routing_experiment import net
 from routing_experiment.net import PortNumber, NodeId, Cost
@@ -8,7 +8,7 @@ from routing_experiment.routing import Route
 
 
 class Propagator:
-    def pick(self, store: RouteStore, adapter: net.Adapter) -> tuple[PortNumber, NodeId, Route, Cost]:
+    def pick(self, store: RouteStore, adapter: net.Adapter) -> Optional[tuple[PortNumber, NodeId, Route, Cost]]:
         raise Exception("not implemented")
 
 
@@ -27,8 +27,10 @@ class CompositePropagator(Propagator):
         self.port_picker = port_picker
         self.route_picker = route_picker
 
-    def pick(self, store: RouteStore, adapter: net.Adapter) -> tuple[PortNumber, NodeId, Route, Cost]:
+    def pick(self, store: RouteStore, adapter: net.Adapter) -> Optional[tuple[PortNumber, NodeId, Route, Cost]]:
         port = self.port_picker.pick(adapter)
+        if port is None:
+            return None
         target, route, cost = self.route_picker.pick(store)
         return port, target, route, cost
 
@@ -37,10 +39,10 @@ class RandomPortPicker(PortPicker):
     def __init__(self, rnd: random.Random):
         self.rnd = rnd
 
-    def pick(self, adapter: net.Adapter) -> PortNumber:
+    def pick(self, adapter: net.Adapter) -> Optional[PortNumber]:
         ports = adapter.ports()
         if len(ports) == 0:
-            raise Exception("no ports available")
+            return None
         return _pick_random(ports, self.rnd)
 
 
@@ -106,7 +108,7 @@ class AlternativeRoutePropagator(Propagator):
         self.ratio = ratio
         self.rnd = rnd
 
-    def pick(self, store: RouteStore, adapter: net.Adapter) -> tuple[PortNumber, NodeId, Route, Cost]:
+    def pick(self, store: RouteStore, adapter: net.Adapter) -> Optional[tuple[PortNumber, NodeId, Route, Cost]]:
         if self.ratio > self.rnd.random():
             return self.first_propagator.pick(store, adapter)
         else:

@@ -69,7 +69,8 @@ class StackEngine(net.Adapter.Handler):
                     self.adapter.send(port_num, datagram)
             else:
                 ports = self.adapter.ports()
-                prob = self.broadcasting_forwarding_rate / len(ports)
-                for port in ports:
-                    if prob > self.rnd.random():
-                        self.adapter.send(port, datagram)
+                if any(ports):
+                    prob = self.broadcasting_forwarding_rate / len(ports)
+                    for port in ports:
+                        if prob > self.rnd.random():
+                            self.adapter.send(port, datagram)
