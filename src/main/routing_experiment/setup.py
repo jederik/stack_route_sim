@@ -17,7 +17,9 @@ class RoutingCandidate(experimentation.Candidate):
             network: net.Network,
             rnd: random.Random,
             link_fail_rate: float,
+            cost_generator: CostGenerator,
     ):
+        self.cost_generator = cost_generator
         self.link_fail_rate = link_fail_rate
         self.rnd = rnd
         self.measurement_reader = measurement_reader
@@ -26,7 +28,7 @@ class RoutingCandidate(experimentation.Candidate):
 
     def run_step(self):
         self._tick_routers()
-        self._fail_links()
+        self._ruin_and_recreate_links()
 
     def _tick_routers(self):
         for router in self.routers:
@@ -37,7 +39,7 @@ class RoutingCandidate(experimentation.Candidate):
         metrics_calculator = _create_metrics_calculator(self.network, self.routers, measurement_session)
         return metrics_calculator.scrape(metrics)
 
-    def _fail_links(self):
+    def _ruin_and_recreate_links(self):
         failing_links = [
             (node_id, port_num)
             for node_id, node in enumerate(self.network.nodes)
@@ -46,6 +48,13 @@ class RoutingCandidate(experimentation.Candidate):
         ]
         for (node_id, port_num) in failing_links:
             self.network.disconnect(node_id, port_num)
+            self._establish_random_link()
+
+    def _establish_random_link(self):
+        node1 = self.rnd.choice(range(len(self.network.nodes)))
+        node2 = self.rnd.choice(range(len(self.network.nodes)))
+        cost, backward_cost = self.cost_generator(self.rnd, node1, node2)
+        self.network.connect(node1, node2, cost, backward_cost)
 
 
 def cost_generator_same(rnd: random.Random, i: int, j: int) -> tuple[float, float]:
@@ -56,8 +65,7 @@ def cost_generator_uniform(rnd: random.Random, i: int, j: int) -> tuple[float, f
     return rnd.random(), rnd.random()
 
 
-def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracker):
-    cost_generator = _create_cost_generator(config)
+def generate_network(config, rnd: random.Random, tracker: instrumentation.Tracker, cost_generator: CostGenerator):
     graph = _generate_graph(config, rnd, cost_generator)
     return _graph_to_network(graph, tracker)
 
@@ -122,7 +130,8 @@ def _create_router_factory(strategy_config, node_count: int) -> routing.RouterFa
 def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
     tracker, measurement_reader = instrumentation.setup()
     router_factory = _create_router_factory(config["routing"], config["network"]["node_count"])
-    network = generate_network(config["network"], rnd, tracker)
+    cost_generator = _create_cost_generator(config)
+    network = generate_network(config["network"], rnd, tracker, cost_generator)
     routers = [
         router_factory.create_router(adapter, node_id, tracker)
         for node_id, adapter in enumerate(network.adapters)
@@ -135,4 +144,5 @@ def create_candidate(config, rnd: random.Random) -> experimentation.Candidate:
         network=network,
         rnd=rnd,
         link_fail_rate=config["link_fail_rate"],
+        cost_generator=cost_generator,
     )
