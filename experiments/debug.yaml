@@ -5,9 +5,9 @@ plotting:
   groups:
     - x_metric: transmissions_per_node
       figures:
-        - metric: demanded_routability
-        - metric: demanded_efficiency
-        - metric: demanded_efficient_routability
+        - metric: routability
+        - metric: efficiency
+        - metric: efficient_routability
 default_candidate_config:
   network:
     node_count: 100

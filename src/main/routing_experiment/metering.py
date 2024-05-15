@@ -53,7 +53,7 @@ class MetricsCalculator:
             return self.propagated_route_length()
         raise Exception(f"metric not supported: {name}")
 
-    def route_cost(self, source: NodeId, route: Route) -> Cost:
+    def _route_cost(self, source: NodeId, route: Route) -> Cost:
         route_cost = 0
         node = source
         for port_num in route:
@@ -61,6 +61,12 @@ class MetricsCalculator:
             route_cost += port.cost
             node = port.target_node
         return route_cost
+
+    def _route_correct(self, source: NodeId, route: Route, target: NodeId) -> bool:
+        node = source
+        for port in route:
+            node = self.network.nodes[node].ports[port].target_node
+        return node == target
 
     def transmissions_per_node(self):
         return self.measurement_session.get(measurements.TRANSMISSION_COUNT) / len(self.network.nodes)
@@ -73,7 +79,9 @@ class MetricsCalculator:
                 if reachabilities[source][target]:
                     total_demand += 1
                     if self.routers[source].has_route(target):
-                        total_supply += 1
+                        route = self.routers[source].route(target)
+                        if self._route_correct(source, route, target):
+                            total_supply += 1
         return total_supply / total_demand
 
     def efficiency(self):
@@ -82,10 +90,12 @@ class MetricsCalculator:
         distances = graphs.distances(self.graph)
         for source in range(len(self.network.nodes)):
             for target in range(len(self.network.nodes)):
-                route = self.routers[source].route(target)
-                if route is not None:
-                    route_lengths += self.route_cost(source, route)
-                    node_distances += distances[source][target]
+                if self.routers[source].has_route(target):
+                    route = self.routers[source].route(target)
+                    if route is not None:
+                        if self._route_correct(source, route, target):
+                            route_lengths += self._route_cost(source, route)
+                            node_distances += distances[source][target]
         if route_lengths == 0:
             return 1
         return node_distances / route_lengths
@@ -99,7 +109,9 @@ class MetricsCalculator:
                     demand = self.routers[source].demand(target) / self.overall_demand
                     total_demand += demand
                     if self.routers[source].has_route(target):
-                        total_supply += demand
+                        route = self.routers[source].route(target)
+                        if self._route_correct(source, route, target):
+                            total_supply += demand
         return total_supply / total_demand
 
     def demanded_efficiency(self):
@@ -111,8 +123,9 @@ class MetricsCalculator:
                 demand = self.routers[source].demand(target) / self.overall_demand
                 route = self.routers[source].route(target)
                 if route is not None:
-                    route_lengths += self.route_cost(source, route) * demand
-                    node_distances += distances[source][target] * demand
+                    if self._route_correct(source, route, target):
+                        route_lengths += self._route_cost(source, route) * demand
+                        node_distances += distances[source][target] * demand
         if route_lengths == 0:
             return 1
         return node_distances / route_lengths
