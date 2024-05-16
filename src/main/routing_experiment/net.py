@@ -14,6 +14,9 @@ class Adapter:
         def handle(self, port_num: PortNumber, message) -> None:
             raise Exception("not implemented")
 
+        def on_disconnected(self, port_num: PortNumber) -> None:
+            pass
+
     def send(self, port_num: PortNumber, message) -> None:
         raise Exception("not implemented")
 
@@ -97,6 +100,8 @@ class Network:
         reverse_port_num = self.nodes[node_id].ports[port_num].target_port_num
         del self.nodes[other_node_id].ports[reverse_port_num]
         del self.nodes[node_id].ports[port_num]
+        self.adapters[node_id].handler.on_disconnected(port_num)
+        self.adapters[other_node_id].handler.on_disconnected(reverse_port_num)
 
     def _send(self, sender_node_id: int, sender_port_num: int, message):
         node = self.nodes[sender_node_id]

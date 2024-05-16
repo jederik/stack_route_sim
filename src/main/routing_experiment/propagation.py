@@ -80,9 +80,11 @@ class ShortestRoutePicker(RoutePicker):
     def __init__(self, rnd: random.Random):
         self.rnd = rnd
 
-    def pick(self, store: RouteStore) -> tuple[NodeId, Route, Cost]:
+    def pick(self, store: RouteStore) -> Optional[tuple[NodeId, Route, Cost]]:
         target = _pick_random(list(store.nodes.keys()), self.rnd)
         priced_route = store.shortest_route(target)
+        if priced_route is None:
+            return None
         return target, priced_route.path, priced_route.cost
 
 

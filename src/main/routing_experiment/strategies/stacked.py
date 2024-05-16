@@ -32,6 +32,11 @@ class MessageHandler:
         raise Exception("not implemented")
 
 
+class PortDisconnectedTask:
+    def execute(self, port_num: net.PortNumber):
+        raise Exception("not implemented")
+
+
 class ExtendableRouter(StackEngineRouter):
     class Task:
         def execute(self):
@@ -44,14 +49,20 @@ class ExtendableRouter(StackEngineRouter):
             message_handlers: dict[type, MessageHandler],
             demand_map: dict[NodeId, float],
             auto_forward_propagations: bool,
+            port_disconnected_tasks: list[PortDisconnectedTask],
             store: Optional[route_storage.RouteStore] = None,
     ):
         super().__init__(stack_engine)
+        self.port_disconnected_tasks = port_disconnected_tasks
         self.message_handlers = message_handlers
         self.auto_forward_propagations = auto_forward_propagations
         self.demand_map = demand_map
         self.scheduled_tasks = scheduled_tasks
         self.store = store
+        
+    def on_port_disconnected(self, port_num: net.PortNumber):
+        for task in self.port_disconnected_tasks:
+            task.execute(port_num)
 
     def tick(self) -> None:
         for task in self.scheduled_tasks:
@@ -221,8 +232,44 @@ class Searcher(MessageHandler, ExtendableRouter.Task):
         return pairs, accumulated_demand
 
 
+class LinkFailureAdvertisement:
+    pass
+
+
+class LinkFailureAdvertiser(PortDisconnectedTask):
+    def __init__(self, stack_engine: stacking.StackEngine):
+        self.stack_engine = stack_engine
+
+    def execute(self, port_num: net.PortNumber):
+        advertisement = stacking.Datagram(
+            payload=LinkFailureAdvertisement(
+            ),
+            origin=[port_num],
+        )
+        self.stack_engine.send_datagram(advertisement)
+
+
+class LinkFailureAdvertisementHandler(MessageHandler):
+    def __init__(self, stack_engine: stacking.StackEngine, store: route_storage.RouteStore):
+        self.store = store
+        self.stack_engine = stack_engine
+
+    def handle(self, datagram: stacking.Datagram):
+        advertisement: LinkFailureAdvertisement = datagram.payload
+        route = datagram.origin
+        if self.store.has_routes_starting_with(route):
+            self.store.remove_routes_starting_with(route)
+            self.stack_engine.send_full_broadcast(
+                datagram=stacking.Datagram(
+                    payload=datagram.payload,
+                    origin=datagram.origin,
+                ),
+            )
+
+
 class StackedRouterFactory(routing.RouterFactory):
     def __init__(self, config: dict, rnd: random.Random, node_count: int):
+        self.advertise_link_failures = config["advertise_link_failures"]
         self.searching_enabled = config["searching"]
         self.auto_forward_propagations = config["auto_forward_propagations"]
         self.random_walk_broadcasting = (
@@ -282,6 +329,10 @@ class StackedRouterFactory(routing.RouterFactory):
             searcher = Searcher(store, stack_engine, self.rnd, demand_map)
             message_handlers[RouteSearchMessage] = searcher
             scheduled_tasks.append(searcher)
+        port_disconnected_tasks = []
+        if self.advertise_link_failures:
+            message_handlers[LinkFailureAdvertisement] = LinkFailureAdvertisementHandler(stack_engine, store)
+            port_disconnected_tasks.append(LinkFailureAdvertiser(stack_engine))
         router = ExtendableRouter(
             stack_engine=stack_engine,
             scheduled_tasks=scheduled_tasks,
@@ -289,6 +340,7 @@ class StackedRouterFactory(routing.RouterFactory):
             auto_forward_propagations=self.auto_forward_propagations,
             store=store,
             message_handlers=message_handlers,
+            port_disconnected_tasks=port_disconnected_tasks,
         )
         stack_engine.endpoint = router
         return router

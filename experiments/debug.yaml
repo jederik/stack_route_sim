@@ -14,19 +14,19 @@ default_candidate_config:
     node_count: 100
     density: .1
   routing:
+    strategy: stacked
     propagation:
       strategy: shortest_route
+    searching: off
     route_propagation: on
     self_propagation: off
     broadcast_forwarding_rate: 0.8
     auto_forward_propagations: off
   link_fail_rate: 0.03
 candidates:
-  without_search:
+  static:
     routing:
-      strategy: stacked
-      searching: off
-  with_search:
+      advertise_link_failures: off
+  recovery:
     routing:
-      strategy: stacked
-      searching: on
+      advertise_link_failures: on

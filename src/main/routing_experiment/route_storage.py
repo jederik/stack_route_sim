@@ -90,13 +90,11 @@ class RouteStore:
             return None
         return copy.deepcopy(self._shortest_route_rec(target))
 
-    def _shortest_route_rec(self, target: NodeId) -> Optional[PricedRoute]:
+    def _shortest_route_rec(self, target: NodeId) -> PricedRoute:
         if target == self.source:
             return PricedRoute([], 0)
         pred = self.nodes[target].predecessor
         pred_route = self.shortest_route(pred)
-        if pred_route is None:
-            return None
         last_mile = self.nodes[pred].edges[target].priced_routes[0]
         return PricedRoute(
             path=pred_route.path + last_mile.path,
@@ -204,8 +202,8 @@ class RouteStore:
         with self.measurements.distance_update_seconds_sum:
             self._update_distances(modified_edges)
 
-    def _update_distances(self, modified_edges: list[tuple[NodeId, NodeId]]):
-        if len(modified_edges) == 0:
+    def _update_distances(self, modified_edges: Optional[list[tuple[NodeId, NodeId]]] = None):
+        if modified_edges is not None and len(modified_edges) == 0:
             return
 
         # Dijkstra:
@@ -225,6 +223,11 @@ class RouteStore:
                     if alt < self.nodes[v].distance:
                         self.nodes[v].predecessor = u
                         self.nodes[v].distance = alt
+        self.nodes = {
+            node_id: node
+            for node_id, node in self.nodes.items()
+            if node.distance != math.inf
+        }
 
     def _route_exists(self, source: NodeId, route: Route) -> bool:
         for successor, edge in self.nodes[source].edges.items():
@@ -232,6 +235,47 @@ class RouteStore:
                 if priced_route.path == route:
                     return True
         return False
+
+    def remove_routes_starting_with(self, route: Route):
+        self._remove_routes_starting_with_rec(
+            source=self.source,
+            route=route,
+        )
+        self._update_distances()
+
+    def _remove_routes_starting_with_rec(self, source: NodeId, route: Route):
+        for successor, edge in self.nodes[source].edges.items():
+            edge.priced_routes = [
+                priced_route
+                for priced_route in edge.priced_routes
+                if not is_prefix(route, priced_route.path)
+            ]
+        self.nodes[source].edges = {
+            successor: edge
+            for successor, edge in self.nodes[source].edges.items()
+            if any(edge.priced_routes)
+        }
+
+        # find known node on the route
+        for successor, edge in self.nodes[source].edges.items():
+            for edge_route in edge.priced_routes:
+                if is_prefix(edge_route.path, route):
+                    self._remove_routes_starting_with_rec(
+                        source=successor,
+                        route=route[len(edge_route.path):],
+                    )
+                    return
+
+    def has_routes_starting_with(self, route: Route) -> bool:
+        return self._has_routes_starting_with_rec(self.source, route)
+
+    def _has_routes_starting_with_rec(self, source: NodeId, route: Route):
+        for successor, edge in self.nodes[source].edges.items():
+            for priced_route in edge.priced_routes:
+                if is_prefix(route, priced_route.path):
+                    return True
+                if is_prefix(priced_route.path, route):
+                    return self._has_routes_starting_with_rec(successor, route[len(priced_route.path):])
 
 
 class _Measurements:
