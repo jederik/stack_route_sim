@@ -97,7 +97,7 @@ class ShortestRoutePropagator:
         )
 
 
-class AlternativeRoutePropagator(Propagator):
+class AlternatingRoutePropagator(Propagator):
     def __init__(
             self,
             first_propagator: Propagator,
@@ -118,7 +118,7 @@ class AlternativeRoutePropagator(Propagator):
 
     @classmethod
     def create(cls, config, rnd: random.Random):
-        return AlternativeRoutePropagator(
+        return AlternatingRoutePropagator(
             first_propagator=RandomRoutePropagator.create(config["random"], rnd),
             second_propagator=ShortestRoutePropagator.create(config["shortest"], rnd),
             ratio=config["ratio"],
@@ -133,7 +133,7 @@ def create_propagator(config, rnd: random.Random) -> Propagator:
     if strategy == "shortest_route":
         return ShortestRoutePropagator.create(config, rnd)
     if strategy == "alternate":
-        return AlternativeRoutePropagator.create(config, rnd)
+        return AlternatingRoutePropagator.create(config, rnd)
     raise Exception(f"unknown propagation strategy: {strategy}")
 
 

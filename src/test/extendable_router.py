@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock
 
+import routing_experiment.extendable_router
 from routing_experiment import stacking
-from routing_experiment.strategies import stacked
 
 
 # noinspection PyMethodMayBeStatic
@@ -10,7 +10,7 @@ class MyTestCase(unittest.TestCase):
     def test_scheduled_tasks(self):
         tick_task_1 = Mock()
         tick_task_2 = Mock()
-        stacked.ExtendableRouter(
+        routing_experiment.extendable_router.ExtendableRouter(
             stack_engine=Mock(),
             scheduled_tasks=[
                 tick_task_1,
@@ -20,6 +20,7 @@ class MyTestCase(unittest.TestCase):
             store=Mock(),
             auto_forward_propagations=False,
             message_handlers={},
+            port_disconnected_tasks=[],
         ).tick()
         tick_task_1.execute.assert_called()
         tick_task_2.execute.assert_called()
@@ -27,7 +28,7 @@ class MyTestCase(unittest.TestCase):
     def test_broadcast_handling(self):
         handler = Mock()
         handler.handle = Mock()
-        stacked.ExtendableRouter(
+        routing_experiment.extendable_router.ExtendableRouter(
             stack_engine=Mock(),
             scheduled_tasks=[],
             demand_map={},
@@ -36,6 +37,7 @@ class MyTestCase(unittest.TestCase):
             message_handlers={
                 str: handler,
             },
+            port_disconnected_tasks=[],
         ).receive_datagram(
             datagram=stacking.Datagram(
                 payload="blabla",
@@ -50,7 +52,7 @@ class MyTestCase(unittest.TestCase):
     def test_unicast_handling(self):
         handler = Mock()
         handler.handle = Mock()
-        stacked.ExtendableRouter(
+        routing_experiment.extendable_router.ExtendableRouter(
             stack_engine=Mock(),
             scheduled_tasks=[],
             demand_map={},
@@ -59,6 +61,7 @@ class MyTestCase(unittest.TestCase):
             message_handlers={
                 str: handler,
             },
+            port_disconnected_tasks=[],
         ).receive_datagram(
             datagram=stacking.Datagram(
                 payload="blabla",

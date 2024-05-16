@@ -22,10 +22,10 @@ class MyTestCase(unittest.TestCase):
                 origin=[2, 3],
             ),
         )
-        endpoint.receive_broadcast.assert_called()
-        self.assertEqual("blabla", endpoint.receive_broadcast.call_args[0][0].payload)
-        self.assertEqual([1, 2, 3], endpoint.receive_broadcast.call_args[0][0].origin)
-        self.assertIsNone(endpoint.receive_broadcast.call_args[0][0].destination)
+        endpoint.receive_datagram.assert_called()
+        self.assertEqual("blabla", endpoint.receive_datagram.call_args[0][0].payload)
+        self.assertEqual([1, 2, 3], endpoint.receive_datagram.call_args[0][0].origin)
+        self.assertIsNone(endpoint.receive_datagram.call_args[0][0].destination)
 
     def test_send_broadcast(self):
         adapter = Mock()
@@ -76,14 +76,14 @@ class MyTestCase(unittest.TestCase):
                 destination=[],
             ),
         )
-        endpoint.receive_unicast.assert_called()
-        self.assertEqual("blabla", endpoint.receive_unicast.call_args[0][0].payload)
-        self.assertEqual([1, 2, 3], endpoint.receive_unicast.call_args[0][0].origin)
-        self.assertEqual([], endpoint.receive_unicast.call_args[0][0].destination)
+        endpoint.receive_datagram.assert_called()
+        self.assertEqual("blabla", endpoint.receive_datagram.call_args[0][0].payload)
+        self.assertEqual([1, 2, 3], endpoint.receive_datagram.call_args[0][0].origin)
+        self.assertEqual([], endpoint.receive_datagram.call_args[0][0].destination)
 
     def test_forward_unicast(self):
         adapter = Mock()
-        adapter.send_datagram = Mock()
+        adapter.send = Mock()
         engine = stacking.StackEngine(
             adapter=adapter,
             rnd=Mock(),
@@ -100,10 +100,11 @@ class MyTestCase(unittest.TestCase):
             ),
         )
         adapter.send.assert_called()
-        self.assertEqual(5, adapter.send.call_args[0][0])
-        self.assertEqual("blabla", adapter.send.call_args[0][1].payload)
-        self.assertEqual([1, 2, 3], adapter.send.call_args[0][1].origin)
-        self.assertEqual([6, 7], adapter.send.call_args[0][1].destination)
+        send_call_args = adapter.send.call_args_list[0][1]
+        self.assertEqual(5, send_call_args["port_num"])
+        self.assertEqual("blabla", send_call_args["message"].payload)
+        self.assertEqual([1, 2, 3], send_call_args["message"].origin)
+        self.assertEqual([6, 7], send_call_args["message"].destination)
 
     def test_send_unicast(self):
         adapter = Mock()
@@ -126,10 +127,11 @@ class MyTestCase(unittest.TestCase):
             ),
         )
         adapter.send.assert_called()
-        self.assertEqual(1, adapter.send.call_args[0][0])
-        self.assertEqual("blabla", adapter.send.call_args[0][1].payload)
-        self.assertEqual([], adapter.send.call_args[0][1].origin)
-        self.assertEqual([2, 3], adapter.send.call_args[0][1].destination)
+        send_call_args = adapter.send.call_args_list[0][1]
+        self.assertEqual(1, send_call_args["port_num"])
+        self.assertEqual("blabla", send_call_args["message"].payload)
+        self.assertEqual([], send_call_args["message"].origin)
+        self.assertEqual([2, 3], send_call_args["message"].destination)
 
 
 if __name__ == '__main__':
