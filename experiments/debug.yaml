@@ -5,9 +5,10 @@ plotting:
   groups:
     - x_metric: transmissions_per_node
       figures:
-        - metric: demanded_routability
-        - metric: demanded_efficiency
-        - metric: demanded_efficient_routability
+        - metric: routability
+        - metric: efficiency
+        - metric: efficient_routability
+        - metric: route_failures
 default_candidate_config:
   network:
     node_count: 100
@@ -15,16 +16,16 @@ default_candidate_config:
   routing:
     propagation:
       strategy: shortest_route
+    searching: off
     route_propagation: on
     self_propagation: off
     broadcast_forwarding_rate: 0.8
     auto_forward_propagations: off
+  link_fail_rate: 0.03
 candidates:
-  without_search:
+  static:
     routing:
-      strategy: stacked
-      searching: off
-  with_search:
+      advertise_link_failures: off
+  recovery:
     routing:
-      strategy: stacked
-      searching: on
+      advertise_link_failures: on

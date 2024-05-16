@@ -19,6 +19,9 @@ class Endpoint:
     def receive_datagram(self, datagram: Datagram):
         raise Exception("not implemented")
 
+    def on_port_disconnected(self, port_num: net.PortNumber):
+        pass
+
 
 class StackEngine(net.Adapter.Handler):
     def __init__(
@@ -49,6 +52,10 @@ class StackEngine(net.Adapter.Handler):
             # broadcast
             self.endpoint.receive_datagram(datagram)
 
+    def on_disconnected(self, port_num: PortNumber) -> None:
+        if self.endpoint:
+            self.endpoint.on_port_disconnected(port_num)
+
     def send_datagram(self, datagram: Datagram):
         if datagram.destination is not None:
             # unicast
@@ -69,7 +76,12 @@ class StackEngine(net.Adapter.Handler):
                     self.adapter.send(port_num, datagram)
             else:
                 ports = self.adapter.ports()
-                prob = self.broadcasting_forwarding_rate / len(ports)
-                for port in ports:
-                    if prob > self.rnd.random():
-                        self.adapter.send(port, datagram)
+                if any(ports):
+                    prob = self.broadcasting_forwarding_rate / len(ports)
+                    for port in ports:
+                        if prob > self.rnd.random():
+                            self.adapter.send(port, datagram)
+
+    def send_full_broadcast(self, datagram: Datagram):
+        for port in self.adapter.ports():
+            self.adapter.send(port, datagram)

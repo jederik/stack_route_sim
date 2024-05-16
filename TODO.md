@@ -1,14 +1,16 @@
 ## Tasks
 
+- simulate link establishment
 
 
 ## Goals
 
+- investigate recovery from link failures
 - investigate different node types:
-  - micro nodes (only forwarding)
+  - forwarder nodes (only forwarding)
   - service nodes (propagating own ID)
   - client nodes (collecting foreign routes)
-  - landmark nodes (propagating and collecting foreign routes)
+  - broker nodes (propagating and collecting foreign routes)
 - investigate heterogeneous demand for certain services
 - use same network for all candidates
 - run multiple rounds for each candidate

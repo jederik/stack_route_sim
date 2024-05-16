@@ -3,6 +3,7 @@ import typing
 import unittest
 from unittest.mock import Mock, MagicMock
 
+from routing_experiment import setup
 from routing_experiment.net import Network, NodeId, Cost
 from routing_experiment.route_storage import _Edge, _Node, RouteStore, PricedRoute
 from routing_experiment.routing import Route
@@ -56,6 +57,7 @@ class MyTestCase(unittest.TestCase):
                 },
                 rnd=rnd,
                 tracker=Mock(),
+                cost_generator=setup.cost_generator_uniform,
             )
             source = int(rnd.random() * len(network.nodes))
             store = RouteStore(source, MagicMock(), Mock(), True, True)
